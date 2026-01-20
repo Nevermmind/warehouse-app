@@ -1,5 +1,9 @@
 <template>
-  <div class="container">
+  <div v-if="!user" class="loading">
+    <p>加载中...</p>
+  </div>
+
+  <div v-else class="container">
     <div class="header">
       <h1>📝 家庭规定</h1>
       <div class="user-info">
@@ -202,16 +206,26 @@ async function handleSignOut() {
 
 onMounted(async () => {
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
+  if (session && session.user) {
     user.value = session.user
     await loadRules()
   } else {
+    console.log('No session found, redirecting to home')
     router.push('/')
   }
 })
 </script>
 
 <style scoped>
+.loading {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 18px;
+}
+
 .container {
   max-width: 800px;
   margin: 0 auto;
