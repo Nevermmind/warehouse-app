@@ -71,6 +71,7 @@ function handleClick() {
   font-size: 2em;
   font-weight: bold;
   margin-bottom: 5px;
+  color: #333;
 }
 
 .stat-label {

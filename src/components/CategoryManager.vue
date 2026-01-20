@@ -156,6 +156,7 @@ function handleDelete(category) {
   border-radius: 20px;
   font-size: 14px;
   position: relative;
+  color: #333;
 }
 
 .delete-category-btn {

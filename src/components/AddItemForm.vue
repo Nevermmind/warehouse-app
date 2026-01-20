@@ -117,6 +117,9 @@ select {
   transition: all 0.3s ease;
   background: #fafafa;
   cursor: pointer;
+  box-sizing: border-box;
+  height: 58px;
+  line-height: 1.5;
 }
 
 /* select 特别样式，确保高度一致 */
@@ -128,9 +131,6 @@ select {
   background-repeat: no-repeat;
   background-position: right 18px center;
   padding-right: 45px;
-  line-height: 1.5;
-  height: auto;
-  min-height: 58px;
 }
 
 input[type="text"]:focus,
