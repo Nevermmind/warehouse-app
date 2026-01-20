@@ -120,6 +120,7 @@ select {
   box-sizing: border-box;
   height: 58px;
   line-height: 1.5;
+  vertical-align: middle;
 }
 
 /* select 特别样式，确保高度一致 */
@@ -192,6 +193,40 @@ button:active {
 @media (max-width: 600px) {
   .card {
     padding: 15px;
+  }
+
+  /* 确保移动端输入框高度一致 */
+  input[type="text"],
+  input[type="date"],
+  select {
+    height: 56px;
+    padding: 14px 16px;
+    font-size: 16px;
+  }
+
+  /* 强制移动端日期输入框样式一致 */
+  input[type="date"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* 移除移动端日期选择器的默认样式 */
+  input[type="date"]::-webkit-date-and-time-value {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  input[type="date"]::-webkit-datetime-edit {
+    display: block;
+    padding: 0;
+  }
+
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
   }
 }
 </style>
