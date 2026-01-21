@@ -6,3 +6,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Scheduled Functions - 定时检查过期提醒
+# 每天早上 8 点执行 (Cron: 0 8 * * *)
+[functions.check-expiry]
+  schedule = "0 8 * * *"

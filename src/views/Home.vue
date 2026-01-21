@@ -264,6 +264,7 @@ async function handleAddItem(item) {
         name: item.name,
         category_id: item.categoryId,
         expiry_date: item.expiryDate,
+        reminder_days: item.reminderDays || 3,
         user_id: SHARED_USER_ID
       })
       .select()

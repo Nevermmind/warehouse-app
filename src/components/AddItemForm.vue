@@ -35,6 +35,20 @@
             required
         >
       </div>
+      <div class="form-group">
+        <label for="reminderDays">
+          提前提醒天数
+          <span class="label-hint">(默认提前3天提醒)</span>
+        </label>
+        <input
+            type="number"
+            id="reminderDays"
+            v-model="newItem.reminderDays"
+            min="1"
+            max="30"
+            placeholder="3"
+        >
+      </div>
       <button type="submit">添加物品</button>
     </form>
   </div>
@@ -55,7 +69,8 @@ const emit = defineEmits(['add-item'])
 const newItem = ref({
   name: '',
   categoryId: '',
-  expiryDate: ''
+  expiryDate: '',
+  reminderDays: 3
 })
 
 const today = computed(() => {
@@ -69,12 +84,14 @@ function handleAdd() {
       name: newItem.value.name.trim(),
       categoryId: newItem.value.categoryId,
       expiryDate: newItem.value.expiryDate,
+      reminderDays: newItem.value.reminderDays || 3,
       createdAt: new Date().toISOString()
     })
 
     newItem.value.name = ''
     newItem.value.categoryId = ''
     newItem.value.expiryDate = ''
+    newItem.value.reminderDays = 3
   }
 }
 </script>
@@ -106,8 +123,16 @@ label {
   font-weight: 500;
 }
 
+.label-hint {
+  font-weight: 400;
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 4px;
+}
+
 input[type="text"],
 input[type="date"],
+input[type="number"],
 select {
   width: 100%;
   padding: 16px 18px;
@@ -121,6 +146,17 @@ select {
   height: 58px;
   line-height: 1.5;
   vertical-align: middle;
+}
+
+/* 移除 number 输入框的上下箭头 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* select 特别样式，确保高度一致 */
@@ -198,6 +234,7 @@ button:active {
   /* 确保移动端输入框高度一致 */
   input[type="text"],
   input[type="date"],
+  input[type="number"],
   select {
     height: 56px;
     padding: 14px 16px;
