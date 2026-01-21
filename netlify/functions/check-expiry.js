@@ -34,6 +34,19 @@ export const handler = async (event, context) => {
       return { statusCode: 500, body: JSON.stringify({ error: '获取用户失败' }) }
     }
 
+    // 过滤出有邮箱的用户
+    const validUsers = users.filter(user => user.email)
+
+    if (validUsers.length === 0) {
+      console.log('没有找到有效的用户邮箱')
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: '没有找到用户邮箱' })
+      }
+    }
+
+    console.log(`找到 ${validUsers.length} 个用户需要发送邮件`)
+
     // 获取所有需要提醒的物品
     const { data: items, error: itemsError } = await supabase
       .from('items')
@@ -70,17 +83,6 @@ export const handler = async (event, context) => {
       return {
         statusCode: 200,
         body: JSON.stringify({ message: '没有需要提醒的物品' })
-      }
-    }
-
-    // 获取第一个已登录用户的邮箱
-    const userEmail = users?.[0]?.email
-
-    if (!userEmail) {
-      console.log('没有找到用户邮箱')
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: '没有找到用户邮箱' })
       }
     }
 
@@ -230,31 +232,41 @@ export const handler = async (event, context) => {
       </html>
     `
 
-    // 发送邮件
-    console.log('发送邮件到:', userEmail)
-    const { data, error: emailError } = await resend.emails.send({
-      from: '仓库管理 <onboarding@resend.dev>',
-      to: userEmail,
-      subject: `📦 仓库物品过期提醒 - ${expiredItems.length} 个已过期, ${warningItems.length} 个快过期`,
-      html: emailHtml
+    // 给每个用户发送邮件
+    const emailPromises = validUsers.map(async (user) => {
+      console.log('发送邮件到:', user.email)
+
+      const { data, error: emailError } = await resend.emails.send({
+        from: '仓库管理 <onboarding@resend.dev>',
+        to: user.email,
+        subject: `📦 仓库物品过期提醒 - ${expiredItems.length} 个已过期, ${warningItems.length} 个快过期`,
+        html: emailHtml
+      })
+
+      if (emailError) {
+        console.error(`发送邮件到 ${user.email} 失败:`, emailError)
+        return { email: user.email, success: false, error: emailError }
+      }
+
+      console.log(`邮件发送成功到 ${user.email}:`, data)
+      return { email: user.email, success: true, data }
     })
 
-    if (emailError) {
-      console.error('发送邮件失败:', emailError)
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: '发送邮件失败', details: emailError })
-      }
-    }
+    // 等待所有邮件发送完成
+    const results = await Promise.all(emailPromises)
 
-    console.log('邮件发送成功:', data)
+    // 统计发送结果
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.filter(r => !r.success).length
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         message: '检查完成',
         itemsReminded: itemsToRemind.length,
-        emailSent: true
+        emailsSent: successCount,
+        emailsFailed: failCount,
+        results
       })
     }
 
