@@ -8,6 +8,6 @@
   status = 200
 
 # Scheduled Functions - 定时检查过期提醒
-# 每天早上 8 点执行 (Cron: 0 8 * * *)
+# 每天晚上 7 点（北京时间）执行 (UTC 11:00 = 北京时间 19:00)
 [functions.check-expiry]
-  schedule = "0 8 * * *"
+  schedule = "0 11 * * *"
