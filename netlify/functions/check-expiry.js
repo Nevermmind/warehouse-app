@@ -233,7 +233,7 @@ export const handler = async (event, context) => {
     // 发送邮件
     console.log('发送邮件到:', userEmail)
     const { data, error: emailError } = await resend.emails.send({
-      from: '仓库管理 <noreply@yourdomain.com>',
+      from: '仓库管理 <onboarding@resend.dev>',
       to: userEmail,
       subject: `📦 仓库物品过期提醒 - ${expiredItems.length} 个已过期, ${warningItems.length} 个快过期`,
       html: emailHtml
