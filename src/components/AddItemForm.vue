@@ -38,7 +38,7 @@
       <div class="form-group">
         <label for="reminderDays">
           提前提醒天数
-          <span class="label-hint">(默认提前3天提醒)</span>
+          <span class="label-hint">(默认提前5天提醒)</span>
         </label>
         <input
             type="number"
@@ -46,7 +46,7 @@
             v-model="newItem.reminderDays"
             min="1"
             max="30"
-            placeholder="3"
+            placeholder="5"
         >
       </div>
       <button type="submit">添加物品</button>
@@ -70,7 +70,7 @@ const newItem = ref({
   name: '',
   categoryId: '',
   expiryDate: '',
-  reminderDays: 3
+  reminderDays: 5
 })
 
 const today = computed(() => {
@@ -84,14 +84,14 @@ function handleAdd() {
       name: newItem.value.name.trim(),
       categoryId: newItem.value.categoryId,
       expiryDate: newItem.value.expiryDate,
-      reminderDays: newItem.value.reminderDays || 3,
+      reminderDays: newItem.value.reminderDays || 5,
       createdAt: new Date().toISOString()
     })
 
     newItem.value.name = ''
     newItem.value.categoryId = ''
     newItem.value.expiryDate = ''
-    newItem.value.reminderDays = 3
+    newItem.value.reminderDays = 5
   }
 }
 </script>

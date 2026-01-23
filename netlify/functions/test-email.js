@@ -14,13 +14,13 @@ const SHARED_USER_ID = '00000000-0000-0000-0000-000000000001'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const handler = async (event, context) => {
-  // 只允许 cron job 调用
-  if (event.httpMethod !== 'POST') {
+  // 允许 GET 请求（方便浏览器直接访问）
+  if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' }
   }
 
   try {
-    console.log('开始检查过期提醒...')
+    console.log('开始发送测试邮件...')
 
     // 获取当前日期（设置为当天开始）
     const today = new Date()
@@ -38,14 +38,11 @@ export const handler = async (event, context) => {
     const validUsers = users.filter(user => user.email)
 
     if (validUsers.length === 0) {
-      console.log('没有找到有效的用户邮箱')
       return {
         statusCode: 200,
         body: JSON.stringify({ message: '没有找到用户邮箱' })
       }
     }
-
-    console.log(`找到 ${validUsers.length} 个用户需要发送邮件`)
 
     // 获取所有需要提醒的物品
     const { data: items, error: itemsError } = await supabase
@@ -82,7 +79,10 @@ export const handler = async (event, context) => {
     if (itemsToRemind.length === 0) {
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: '没有需要提醒的物品' })
+        body: JSON.stringify({
+          message: '没有需要提醒的物品',
+          note: '当前没有物品需要提醒。如果这是测试，请添加一些快过期的物品。'
+        })
       }
     }
 
@@ -109,7 +109,7 @@ export const handler = async (event, context) => {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>仓库物品过期提醒</title>
+        <title>【测试】仓库物品过期提醒</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -130,6 +130,16 @@ export const handler = async (event, context) => {
             color: #667eea;
             margin-bottom: 20px;
             text-align: center;
+          }
+          .test-banner {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
           }
           .section {
             margin-bottom: 25px;
@@ -174,13 +184,12 @@ export const handler = async (event, context) => {
             font-size: 14px;
             color: #666;
           }
-          .emoji {
-            font-size: 20px;
-          }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="test-banner">🧪 这是一封测试邮件</div>
+
           <h1>📦 仓库物品过期提醒</h1>
 
           ${expiredItems.length > 0 ? `
@@ -224,8 +233,8 @@ export const handler = async (event, context) => {
           ` : ''}
 
           <div class="footer">
-            <p>🤖 这是一封自动提醒邮件</p>
-            <p>收到此邮件是因为你有 ${itemsToRemind.length} 个物品需要注意</p>
+            <p>🧪 测试时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+            <p>如果收到此邮件，说明邮件功能配置正确！</p>
           </div>
         </div>
       </body>
@@ -234,12 +243,12 @@ export const handler = async (event, context) => {
 
     // 给每个用户发送邮件
     const emailPromises = validUsers.map(async (user) => {
-      console.log('发送邮件到:', user.email)
+      console.log('发送测试邮件到:', user.email)
 
       const { data, error: emailError } = await resend.emails.send({
         from: '仓库管理 <onboarding@resend.dev>',
         to: user.email,
-        subject: `📦 仓库物品过期提醒 - ${expiredItems.length} 个已过期, ${warningItems.length} 个快过期`,
+        subject: `🧪 [测试] 仓库物品过期提醒 - ${expiredItems.length} 个已过期, ${warningItems.length} 个快过期`,
         html: emailHtml
       })
 
@@ -248,7 +257,7 @@ export const handler = async (event, context) => {
         return { email: user.email, success: false, error: emailError }
       }
 
-      console.log(`邮件发送成功到 ${user.email}:`, data)
+      console.log(`测试邮件发送成功到 ${user.email}:`, data)
       return { email: user.email, success: true, data }
     })
 
@@ -261,13 +270,19 @@ export const handler = async (event, context) => {
 
     return {
       statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        message: '检查完成',
+        message: '测试邮件发送完成',
         itemsReminded: itemsToRemind.length,
+        expiredCount: expiredItems.length,
+        warningCount: warningItems.length,
         emailsSent: successCount,
         emailsFailed: failCount,
-        results
-      })
+        results,
+        timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      }, null, 2)
     }
 
   } catch (error) {

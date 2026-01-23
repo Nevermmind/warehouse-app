@@ -9,6 +9,9 @@
     <div class="header">
       <h1>📦 仓库管理 <small style="font-size: 0.5em; opacity: 0.8;">(后端版本)</small></h1>
       <div class="user-info">
+        <button @click="testEmail" class="test-email-btn" :disabled="testingEmail">
+          {{ testingEmail ? '发送中...' : '🧪 测试邮件' }}
+        </button>
         <button @click="goToRules" class="rules-btn">📝 家庭规定</button>
         <span class="user-email">{{ user.email }}</span>
         <button @click="handleSignOut" class="signout-btn">退出登录</button>
@@ -63,7 +66,17 @@
         :emergency-filter="emergencyFilter"
         @filter-category="handleFilterCategory"
         @clear-emergency="handleClearEmergency"
+        @edit-item="handleEditItem"
         @delete-item="handleDeleteItem"
+    />
+
+    <!-- 编辑物品弹窗 -->
+    <EditItemModal
+        :show="showEditModal"
+        :item="editingItem"
+        :categories="categories"
+        @close="closeEditModal"
+        @save="handleSaveEdit"
     />
   </div>
 </template>
@@ -77,6 +90,7 @@ import StatsCard from '../components/StatsCard.vue'
 import CategoryManager from '../components/CategoryManager.vue'
 import AddItemForm from '../components/AddItemForm.vue'
 import ItemList from '../components/ItemList.vue'
+import EditItemModal from '../components/EditItemModal.vue'
 
 const router = useRouter()
 
@@ -86,6 +100,43 @@ const items = ref([])
 const categories = ref([])
 const selectedCategory = ref(null)
 const emergencyFilter = ref(null)
+
+// 编辑相关
+const showEditModal = ref(false)
+const editingItem = ref(null)
+
+// 测试邮件
+const testingEmail = ref(false)
+
+// 测试邮件发送功能
+async function testEmail() {
+  testingEmail.value = true
+
+  try {
+    // 调用 Netlify Function
+    const response = await fetch('/.netlify/functions/test-email', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const result = await response.json()
+
+    if (response.ok) {
+      alert(`测试邮件发送成功！\n\n找到 ${result.itemsReminded} 个需要提醒的物品\n已过期: ${result.expiredCount} 个\n快过期: ${result.warningCount} 个\n成功发送: ${result.emailsSent} 封`)
+      console.log('测试邮件结果:', result)
+    } else {
+      alert('发送失败: ' + (result.error || '未知错误'))
+      console.error('测试邮件失败:', result)
+    }
+  } catch (error) {
+    console.error('测试邮件错误:', error)
+    alert('发送测试邮件失败: ' + error.message)
+  } finally {
+    testingEmail.value = false
+  }
+}
 
 // 共享的 user_id（所有人都用这个 ID，实现数据共享）
 const SHARED_USER_ID = '00000000-0000-0000-0000-000000000001'
@@ -117,7 +168,7 @@ function getStatus(expiryDate) {
 
   if (diffDays < 0) {
     return { status: 'expired', label: '已过期', days: diffDays }
-  } else if (diffDays <= 3) {
+  } else if (diffDays <= 5) {
     return { status: 'warning', label: `快过期 (${diffDays}天)`, days: diffDays }
   } else {
     return { status: 'normal', label: `正常 (${diffDays}天)`, days: diffDays }
@@ -264,7 +315,7 @@ async function handleAddItem(item) {
         name: item.name,
         category_id: item.categoryId,
         expiry_date: item.expiryDate,
-        reminder_days: item.reminderDays || 3,
+        reminder_days: item.reminderDays || 5,
         user_id: SHARED_USER_ID
       })
       .select()
@@ -296,6 +347,47 @@ async function handleDeleteItem(id) {
       console.error('删除物品失败:', error.message)
       alert('删除物品失败: ' + error.message)
     }
+  }
+}
+
+// 编辑物品
+function handleEditItem(item) {
+  editingItem.value = item
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editingItem.value = null
+}
+
+// 保存编辑
+async function handleSaveEdit(editedData) {
+  try {
+    const { data, error } = await supabase
+      .from('items')
+      .update({
+        category_id: editedData.categoryId,
+        expiry_date: editedData.expiryDate,
+        reminder_days: editedData.reminderDays
+      })
+      .eq('id', editedData.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // 更新本地数据
+    const index = items.value.findIndex(item => item.id === editedData.id)
+    if (index !== -1 && data) {
+      items.value[index] = data
+    }
+
+    closeEditModal()
+    alert('物品更新成功！')
+  } catch (error) {
+    console.error('更新物品失败:', error.message)
+    alert('更新物品失败: ' + error.message)
   }
 }
 
@@ -348,6 +440,28 @@ onMounted(async () => {
 .rules-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(67, 206, 162, 0.4);
+}
+
+.test-email-btn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.test-email-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+.test-email-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .user-email {

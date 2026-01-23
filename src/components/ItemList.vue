@@ -62,7 +62,10 @@
             <div class="item-name">{{ item.name }}</div>
             <div class="item-date">到期日: {{ formatDate(item.expiry_date) }}</div>
           </div>
-          <button class="delete-btn" @click="$emit('delete-item', item.id)">删除</button>
+          <div class="item-actions">
+            <button class="edit-btn" @click="$emit('edit-item', item)">✏️ 编辑</button>
+            <button class="delete-btn" @click="$emit('delete-item', item.id)">删除</button>
+          </div>
         </div>
       </div>
     </div>
@@ -91,7 +94,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['filter-category', 'clear-emergency', 'delete-item'])
+const emit = defineEmits(['filter-category', 'clear-emergency', 'edit-item', 'delete-item'])
 
 function getStatus(expiryDate) {
   const now = new Date()
@@ -104,7 +107,7 @@ function getStatus(expiryDate) {
 
   if (diffDays < 0) {
     return { status: 'expired', label: '已过期', days: diffDays }
-  } else if (diffDays <= 3) {
+  } else if (diffDays <= 5) {
     return { status: 'warning', label: `快过期 (${diffDays}天)`, days: diffDays }
   } else {
     return { status: 'normal', label: `正常 (${diffDays}天)`, days: diffDays }
@@ -270,6 +273,7 @@ const filteredItemsByCategory = computed(() => {
   justify-content: space-between;
   align-items: center;
   transition: background-color 0.2s;
+  gap: 10px;
 }
 
 .item:last-child {
@@ -318,6 +322,27 @@ const filteredItemsByCategory = computed(() => {
   color: #2e7d32;
 }
 
+.item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.edit-btn:hover {
+  background: #1976d2;
+}
+
 .delete-btn {
   background: #f44336;
   color: white;
@@ -326,7 +351,7 @@ const filteredItemsByCategory = computed(() => {
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  width: auto;
+  white-space: nowrap;
 }
 
 .delete-btn:hover {
@@ -366,9 +391,15 @@ const filteredItemsByCategory = computed(() => {
     margin-bottom: 10px;
   }
 
-  .delete-btn {
+  .item-actions {
     width: 100%;
     margin-top: 10px;
+    justify-content: flex-end;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    flex: 1;
   }
 }
 </style>
