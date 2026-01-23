@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
 // Supabase 配置
-const supabaseUrl = 'https://xalchjoarpvtbnegjkqm.supabase.co'
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhbGNoam9hcnB2dGJuZWdqa3FtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODg3NzExNiwiZXhwIjoyMDg0NDUzMTE2fQ.8lrRm4OP6Lj9Culda7jre1FzZkxVBqnFXGxPe1FjDy4'
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
