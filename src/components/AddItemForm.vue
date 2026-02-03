@@ -102,13 +102,13 @@ function handleAdd() {
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {
   font-size: 1.2em;
   margin-bottom: 15px;
-  color: #333;
+  color: #1C1C1E;
   font-weight: 600;
 }
 
@@ -119,14 +119,15 @@ function handleAdd() {
 label {
   display: block;
   margin-bottom: 5px;
-  color: #333;
+  color: #1C1C1E;
   font-weight: 500;
+  font-size: 14px;
 }
 
 .label-hint {
   font-weight: 400;
   font-size: 0.9em;
-  color: #666;
+  color: #8E8E93;
   margin-left: 4px;
 }
 
@@ -136,16 +137,16 @@ input[type="number"],
 select {
   width: 100%;
   padding: 16px 18px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 18px;
-  transition: all 0.3s ease;
-  background: #fafafa;
+  border: 1px solid #C6C6C8;
+  border-radius: 10px;
+  font-size: 17px;
+  transition: all 0.2s;
+  background: #FFFFFF;
   cursor: pointer;
   box-sizing: border-box;
-  height: 58px;
+  height: 50px;
   line-height: 1.5;
-  vertical-align: middle;
+  color: #1C1C1E;
 }
 
 /* 移除 number 输入框的上下箭头 */
@@ -164,7 +165,7 @@ select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 18px center;
   padding-right: 45px;
@@ -172,24 +173,24 @@ select {
 
 input[type="text"]:focus,
 input[type="date"]:focus,
+input[type="number"]:focus,
 select:focus {
   outline: none;
-  border-color: #667eea;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-  transform: translateY(-1px);
+  border-color: #1a73e8;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
 /* 日历输入框特别样式 */
 input[type="date"] {
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.5px;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.6;
-  filter: invert(0.5);
+  filter: invert(0.3);
   transition: all 0.2s;
   padding: 8px;
   border-radius: 8px;
@@ -197,33 +198,34 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(26, 115, 232, 0.1);
 }
 
 input[type="date"]::-webkit-datetime-edit-text {
-  color: #667eea;
-  font-weight: 600;
+  color: #8E8E93;
+  font-weight: 400;
 }
 
 button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a73e8;
   color: white;
   border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 14px 30px;
+  border-radius: 10px;
+  font-size: 17px;
   cursor: pointer;
   width: 100%;
-  font-weight: 500;
-  transition: transform 0.2s;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
 button:hover {
-  transform: translateY(-2px);
+  background: #1557b0;
 }
 
 button:active {
-  transform: translateY(0);
+  background: #174ea6;
+  transform: scale(0.98);
 }
 
 @media (max-width: 600px) {
@@ -236,7 +238,7 @@ button:active {
   input[type="date"],
   input[type="number"],
   select {
-    height: 56px;
+    height: 48px;
     padding: 14px 16px;
     font-size: 16px;
   }

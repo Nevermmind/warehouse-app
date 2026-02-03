@@ -122,13 +122,14 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background: #F2F2F7;
 }
 
 .auth-card {
   background: white;
   border-radius: 12px;
   padding: 40px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   width: 100%;
   max-width: 400px;
 }
@@ -136,7 +137,8 @@ async function handleSubmit() {
 h2 {
   text-align: center;
   margin-bottom: 30px;
-  color: #333;
+  color: #1C1C1E;
+  font-weight: 600;
 }
 
 .form-group {
@@ -146,67 +148,77 @@ h2 {
 label {
   display: block;
   margin-bottom: 8px;
-  color: #333;
+  color: #1C1C1E;
   font-weight: 500;
+  font-size: 14px;
 }
 
 input[type="email"],
 input[type="password"] {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  border: 1px solid #C6C6C8;
+  border-radius: 10px;
+  font-size: 17px;
+  transition: all 0.2s;
+  background: #FFFFFF;
+  color: #1C1C1E;
+  height: 44px;
 }
 
 input[type="email"]:focus,
 input[type="password"]:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
 button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a73e8;
   color: white;
   border: none;
   padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 17px;
   cursor: pointer;
   width: 100%;
-  font-weight: 500;
-  transition: transform 0.2s;
+  font-weight: 600;
+  transition: all 0.2s;
+  height: 48px;
 }
 
 button:hover:not(:disabled) {
-  transform: translateY(-2px);
+  background: #1557b0;
+}
+
+button:active:not(:disabled) {
+  background: #174ea6;
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .error-message {
-  background: #ffebee;
-  color: #c62828;
+  background: #FFF0F0;
+  color: #FF3B30;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 20px;
   font-size: 14px;
+  border: 1px solid #FF3B30;
 }
 
 .toggle-mode {
   text-align: center;
   margin-top: 20px;
-  font-size: 14px;
-  color: #666;
+  font-size: 15px;
+  color: #8E8E93;
 }
 
 .toggle-mode a {
-  color: #667eea;
+  color: #1a73e8;
   cursor: pointer;
   font-weight: 500;
   margin-left: 5px;

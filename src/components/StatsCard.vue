@@ -48,7 +48,7 @@ function handleClick() {
   padding: 20px;
   border-radius: 12px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.2s;
 }
 
@@ -58,32 +58,33 @@ function handleClick() {
 }
 
 .stat-card.clickable:hover {
-  border-color: #667eea;
+  border-color: #1a73e8;
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
 }
 
 .stat-card.active {
-  border-color: #667eea;
-  background: #f5f5ff;
+  border-color: #1a73e8;
+  background: #F2F2F7;
 }
 
 .stat-number {
   font-size: 2em;
-  font-weight: bold;
+  font-weight: 600;
   margin-bottom: 5px;
-  color: #333;
+  color: #1C1C1E;
 }
 
 .stat-label {
-  color: #666;
+  color: #8E8E93;
   font-size: 0.9em;
 }
 
 .warning-count {
-  color: #f44336;
+  color: #FF3B30;
 }
 
 .expired-count {
-  color: #9e9e9e;
+  color: #8E8E93;
 }
 </style>

@@ -5,18 +5,33 @@
   </div>
 
   <!-- 已登录：显示主应用 -->
-  <div v-else class="container">
-    <div class="header">
-      <h1>📦 仓库管理 <small style="font-size: 0.5em; opacity: 0.8;">(后端版本)</small></h1>
-      <div class="user-info">
-        <button @click="testEmail" class="test-email-btn" :disabled="testingEmail">
-          {{ testingEmail ? '发送中...' : '🧪 测试邮件' }}
-        </button>
-        <button @click="goToRules" class="rules-btn">📝 家庭规定</button>
-        <span class="user-email">{{ user.email }}</span>
-        <button @click="handleSignOut" class="signout-btn">退出登录</button>
+  <div v-else class="app-container">
+    <!-- 侧边栏 -->
+    <Sidebar
+        ref="sidebarRef"
+        :user-email="user.email"
+        @toggle="handleSidebarToggle"
+    />
+
+    <!-- 主内容区域 -->
+    <div class="main-content" :class="{ expanded: sidebarExpanded }">
+      <div class="header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" @click="openSidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <h1>仓库管理</h1>
+        </div>
+        <div class="user-info">
+          <button @click="testEmail" class="test-email-btn" :disabled="testingEmail">
+            {{ testingEmail ? '发送中' : '测试邮件' }}
+          </button>
+          <span class="user-email">{{ user.email }}</span>
+          <button @click="handleSignOut" class="signout-btn">退出登录</button>
+        </div>
       </div>
-    </div>
 
     <!-- 统计卡片 -->
     <div class="stats">
@@ -44,19 +59,15 @@
       />
     </div>
 
-    <!-- 分类管理 -->
-    <CategoryManager
-        :categories="categories"
-        :items="items"
-        @add-category="handleAddCategory"
-        @delete-category="handleDeleteCategory"
-    />
-
-    <!-- 添加物品表单 -->
-    <AddItemForm
-        :categories="categories"
-        @add-item="handleAddItem"
-    />
+    <!-- 添加物品按钮 -->
+    <div class="add-item-section">
+      <button @click="showAddModal = true" class="add-item-btn">
+        + 添加新物品
+      </button>
+      <button @click="showQuickAddModal = true" class="quick-add-btn">
+        🎤 快速添加
+      </button>
+    </div>
 
     <!-- 物品列表 -->
     <ItemList
@@ -78,6 +89,23 @@
         @close="closeEditModal"
         @save="handleSaveEdit"
     />
+
+    <!-- 添加物品弹窗 -->
+    <AddItemModal
+        :show="showAddModal"
+        :categories="categories"
+        @close="closeAddModal"
+        @add-item="handleAddItem"
+    />
+
+    <!-- 快速添加弹窗 -->
+    <QuickAddModal
+        :show="showQuickAddModal"
+        :categories="categories"
+        @close="closeQuickAddModal"
+        @add-item="handleAddItem"
+    />
+    </div>
   </div>
 </template>
 
@@ -86,11 +114,12 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
 import AuthForm from '../components/AuthForm.vue'
+import Sidebar from '../components/Sidebar.vue'
 import StatsCard from '../components/StatsCard.vue'
-import CategoryManager from '../components/CategoryManager.vue'
-import AddItemForm from '../components/AddItemForm.vue'
 import ItemList from '../components/ItemList.vue'
 import EditItemModal from '../components/EditItemModal.vue'
+import AddItemModal from '../components/AddItemModal.vue'
+import QuickAddModal from '../components/QuickAddModal.vue'
 
 const router = useRouter()
 
@@ -100,13 +129,26 @@ const items = ref([])
 const categories = ref([])
 const selectedCategory = ref(null)
 const emergencyFilter = ref(null)
+const sidebarExpanded = ref(false)
+const sidebarRef = ref(null)
 
 // 编辑相关
 const showEditModal = ref(false)
 const editingItem = ref(null)
 
+// 添加物品弹窗
+const showAddModal = ref(false)
+const showQuickAddModal = ref(false)
+
 // 测试邮件
 const testingEmail = ref(false)
+
+// 打开侧边栏
+function openSidebar() {
+  if (sidebarRef.value) {
+    sidebarRef.value.open()
+  }
+}
 
 // 测试邮件发送功能
 async function testEmail() {
@@ -219,6 +261,10 @@ function goToRules() {
   router.push('/rules')
 }
 
+function handleSidebarToggle(expanded) {
+  sidebarExpanded.value = expanded
+}
+
 // ============ Supabase CRUD 操作 ============
 
 // 加载数据
@@ -248,61 +294,6 @@ async function loadData() {
     }
   } catch (error) {
     console.error('加载数据失败:', error.message)
-  }
-}
-
-// 添加分类
-async function handleAddCategory(category) {
-  try {
-    const { data, error } = await supabase
-      .from('categories')
-      .insert({
-        name: category.name,
-        user_id: SHARED_USER_ID
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    if (data) {
-      categories.value.push(data)
-    }
-  } catch (error) {
-    console.error('添加分类失败:', error.message)
-    alert('添加分类失败: ' + error.message)
-  }
-}
-
-// 删除分类
-async function handleDeleteCategory(categoryId) {
-  try {
-    // 先删除该分类下的所有物品
-    const { error: itemsError } = await supabase
-      .from('items')
-      .delete()
-      .eq('category_id', categoryId)
-
-    if (itemsError) throw itemsError
-
-    // 再删除分类
-    const { error: categoryError } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', categoryId)
-
-    if (categoryError) throw categoryError
-
-    // 更新本地状态
-    categories.value = categories.value.filter(c => c.id !== categoryId)
-    items.value = items.value.filter(item => item.category_id !== categoryId)
-
-    // 如果当前选中的是被删除的分类，清除筛选
-    if (selectedCategory.value === categoryId) {
-      selectedCategory.value = null
-    }
-  } catch (error) {
-    console.error('删除分类失败:', error.message)
-    alert('删除分类失败: ' + error.message)
   }
 }
 
@@ -361,6 +352,14 @@ function closeEditModal() {
   editingItem.value = null
 }
 
+function closeAddModal() {
+  showAddModal.value = false
+}
+
+function closeQuickAddModal() {
+  showQuickAddModal.value = false
+}
+
 // 保存编辑
 async function handleSaveEdit(editedData) {
   try {
@@ -413,92 +412,218 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+.app-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.main-content {
+  flex: 1;
+  transition: all 0.3s ease;
+}
+
+.main-content.expanded {
+  max-width: 100%;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.mobile-menu-btn span {
+  width: 20px;
+  height: 2px;
+  background: #1C1C1E;
+  border-radius: 1px;
+  transition: all 0.3s;
+}
+
+.header h1 {
+  color: #1C1C1E;
+  margin: 0;
+  text-shadow: none;
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
-}
-
-.rules-btn {
-  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.rules-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(67, 206, 162, 0.4);
+  gap: 8px;
 }
 
 .test-email-btn {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #1a73e8;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .test-email-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+  background: #1557b0;
+}
+
+.test-email-btn:active:not(:disabled) {
+  background: #174ea6;
 }
 
 .test-email-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .user-email {
-  color: white;
-  font-size: 14px;
-  opacity: 0.9;
+  color: #8E8E93;
+  font-size: 13px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .signout-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  width: auto;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .signout-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f1f3f4;
 }
 
-@media (max-width: 600px) {
+.signout-btn:active {
+  background: #e8eaed;
+}
+
+.add-item-section {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.add-item-btn,
+.quick-add-btn {
+  flex: 1;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.quick-add-btn {
+  background: #4285f4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.add-item-btn:hover {
+  background: #1557b0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.quick-add-btn:hover {
+  background: #3367d6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.add-item-btn:active {
+  background: #004FC4;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+}
+
+.quick-add-btn:active {
+  background: linear-gradient(135deg, #4a5fc4 0%, #52377a 100%);
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(118, 75, 162, 0.2);
+}
+
+@media (max-width: 768px) {
   .header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
+    flex-direction: row;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .header-left {
+    flex: 1;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .header h1 {
+    font-size: 17px;
   }
 
   .user-info {
-    width: 100%;
-    flex-wrap: wrap;
+    gap: 6px;
   }
-}
 
-.container {
-  width: 100%;
+  .test-email-btn,
+  .signout-btn {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .user-email {
+    display: none;
+  }
+
+  .app-container {
+    flex-direction: column;
+  }
+
+  .add-item-section {
+    flex-direction: column;
+  }
 }
 </style>

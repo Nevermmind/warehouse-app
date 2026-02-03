@@ -79,13 +79,13 @@ function handleDelete(category) {
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {
   font-size: 1.2em;
   margin-bottom: 15px;
-  color: #333;
+  color: #1C1C1E;
   font-weight: 600;
 }
 
@@ -97,42 +97,44 @@ function handleDelete(category) {
 
 .add-category-form input {
   flex: 1;
-  padding: 16px 18px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 18px;
-  transition: all 0.3s ease;
-  background: #fafafa;
+  padding: 12px 16px;
+  border: 1px solid #C6C6C8;
+  border-radius: 10px;
+  font-size: 17px;
+  transition: all 0.2s;
+  background: #FFFFFF;
+  color: #1C1C1E;
+  height: 44px;
 }
 
 .add-category-form input:focus {
   outline: none;
-  border-color: #667eea;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-  transform: translateY(-1px);
+  border-color: #1a73e8;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
 .add-category-form button {
   width: auto;
   white-space: nowrap;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a73e8;
   color: white;
   border: none;
-  padding: 12px 30px;
-  border-radius: 8px;
-  font-size: 16px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 17px;
   cursor: pointer;
-  font-weight: 500;
-  transition: transform 0.2s;
+  font-weight: 600;
+  transition: all 0.2s;
+  height: 44px;
 }
 
-.add-category-form button:hover {
-  transform: translateY(-2px);
+.add-category-form button:hover:not(:disabled) {
+  background: #1557b0;
 }
 
-.add-category-form button:active {
-  transform: translateY(0);
+.add-category-form button:active:not(:disabled) {
+  background: #174ea6;
 }
 
 .add-category-form button:disabled {
@@ -152,17 +154,17 @@ function handleDelete(category) {
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: #f5f5f5;
+  background: #F2F2F7;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 15px;
   position: relative;
-  color: #333;
+  color: #1C1C1E;
 }
 
 .delete-category-btn {
   background: transparent;
   border: none;
-  color: #999;
+  color: #8E8E93;
   font-size: 20px;
   line-height: 1;
   padding: 0;
@@ -174,16 +176,21 @@ function handleDelete(category) {
 }
 
 .delete-category-btn:hover {
-  color: #f44336;
+  color: #FF3B30;
   transform: scale(1.1);
 }
 
+.delete-category-btn:active {
+  transform: scale(0.95);
+}
+
 .category-count {
-  background: white;
+  background: #FFFFFF;
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 12px;
-  color: #666;
+  color: #8E8E93;
+  font-weight: 500;
 }
 
 @media (max-width: 600px) {

@@ -99,7 +99,8 @@ export const handler = async (event, context) => {
       expiryDate.setHours(0, 0, 0, 0)
       const diffTime = expiryDate - today
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return diffDays >= 0 && diffDays <= 5
+      const reminderDays = item.reminder_days || 5
+      return diffDays >= 0 && diffDays <= reminderDays
     })
 
     // 构建 HTML 邮件内容

@@ -2,25 +2,30 @@
   <div v-if="show" class="modal-overlay" @click="closeOnOverlay">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h2>✏️ 编辑物品</h2>
+        <h2>添加新物品</h2>
         <button @click="close" class="close-btn">&times;</button>
       </div>
 
-      <form @submit.prevent="handleSave" class="edit-form">
+      <form @submit.prevent="handleAdd" class="add-form">
         <div class="form-group">
-          <label>物品名称</label>
-          <input type="text" :value="item.name" disabled class="disabled-input">
+          <label for="addItemName">物品名称</label>
+          <input
+              type="text"
+              id="addItemName"
+              v-model="newItem.name"
+              placeholder="例如：牛奶、面包..."
+              required
+          >
         </div>
 
         <div class="form-group">
-          <label for="editCategory">分类</label>
-          <select id="editCategory" v-model="editedItem.categoryId" required>
+          <label for="addItemCategory">分类</label>
+          <select id="addItemCategory" v-model="newItem.categoryId" required>
             <option value="">请选择分类</option>
             <option
                 v-for="category in categories"
                 :key="category.id"
                 :value="category.id"
-                :selected="category.id === item.category_id"
             >
               {{ category.name }}
             </option>
@@ -28,33 +33,34 @@
         </div>
 
         <div class="form-group">
-          <label for="editExpiryDate">保质期到期日</label>
+          <label for="addExpiryDate">保质期到期日</label>
           <input
               type="date"
-              id="editExpiryDate"
-              v-model="editedItem.expiryDate"
+              id="addExpiryDate"
+              v-model="newItem.expiryDate"
+              :min="today"
               required
           >
         </div>
 
         <div class="form-group">
-          <label for="editReminderDays">
+          <label for="addReminderDays">
             提前提醒天数
-            <span class="label-hint">(当前: {{ editedItem.reminderDays }} 天)</span>
+            <span class="label-hint">(默认提前5天提醒)</span>
           </label>
           <input
               type="number"
-              id="editReminderDays"
-              v-model="editedItem.reminderDays"
+              id="addReminderDays"
+              v-model="newItem.reminderDays"
               min="1"
               max="30"
-              required
+              placeholder="5"
           >
         </div>
 
         <div class="form-actions">
           <button type="button" @click="close" class="cancel-btn">取消</button>
-          <button type="submit" class="save-btn">保存修改</button>
+          <button type="submit" class="submit-btn">添加物品</button>
         </div>
       </form>
     </div>
@@ -62,15 +68,11 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    required: true
-  },
-  item: {
-    type: Object,
     required: true
   },
   categories: {
@@ -79,28 +81,28 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(['close', 'add-item'])
 
-// 编辑的数据
-const editedItem = ref({
+const newItem = ref({
+  name: '',
   categoryId: '',
   expiryDate: '',
   reminderDays: 5
 })
 
-// 监听 item 变化，初始化编辑数据
-watch(() => props.item, (newItem) => {
-  if (newItem) {
-    editedItem.value = {
-      categoryId: newItem.category_id,
-      expiryDate: newItem.expiry_date,
-      reminderDays: newItem.reminder_days || 5
-    }
-  }
-}, { immediate: true })
+const today = computed(() => {
+  return new Date().toISOString().split('T')[0]
+})
 
 function close() {
   emit('close')
+  // 重置表单
+  newItem.value = {
+    name: '',
+    categoryId: '',
+    expiryDate: '',
+    reminderDays: 5
+  }
 }
 
 function closeOnOverlay(event) {
@@ -109,13 +111,20 @@ function closeOnOverlay(event) {
   }
 }
 
-function handleSave() {
-  emit('save', {
-    id: props.item.id,
-    categoryId: editedItem.value.categoryId,
-    expiryDate: editedItem.value.expiryDate,
-    reminderDays: editedItem.value.reminderDays
-  })
+function handleAdd() {
+  if (newItem.value.name && newItem.value.categoryId && newItem.value.expiryDate) {
+    emit('add-item', {
+      id: Date.now(),
+      name: newItem.value.name.trim(),
+      categoryId: newItem.value.categoryId,
+      expiryDate: newItem.value.expiryDate,
+      reminderDays: newItem.value.reminderDays || 5,
+      createdAt: new Date().toISOString()
+    })
+
+    // 关闭弹窗并重置表单
+    close()
+  }
 }
 </script>
 
@@ -192,7 +201,7 @@ function handleSave() {
   color: #1C1C1E;
 }
 
-.edit-form {
+.add-form {
   padding: 24px;
 }
 
@@ -239,12 +248,6 @@ function handleSave() {
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
-.disabled-input {
-  background: #F2F2F7 !important;
-  color: #8E8E93;
-  cursor: not-allowed;
-}
-
 .form-actions {
   display: flex;
   gap: 12px;
@@ -276,16 +279,16 @@ function handleSave() {
   background: #D1D1D6;
 }
 
-.save-btn {
+.submit-btn {
   background: #1a73e8;
   color: white;
 }
 
-.save-btn:hover {
+.submit-btn:hover {
   background: #1557b0;
 }
 
-.save-btn:active {
+.submit-btn:active {
   background: #174ea6;
 }
 
@@ -302,7 +305,7 @@ function handleSave() {
     padding: 20px 20px 16px;
   }
 
-  .edit-form {
+  .add-form {
     padding: 20px;
   }
 
