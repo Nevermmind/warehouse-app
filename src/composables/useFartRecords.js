@@ -8,11 +8,6 @@ export function useFartRecords() {
 
   // 加载记录（带日期范围过滤）
   async function loadRecords(userId, startDate = null, endDate = null) {
-    if (!userId) {
-      console.warn('loadWords: userId is required')
-      return
-    }
-
     loading.value = true
     error.value = null
 
@@ -23,7 +18,6 @@ export function useFartRecords() {
           *,
           sound_word: fart_sound_words (*)
         `)
-        .eq('user_id', userId)
         .order('record_time', { ascending: false })
 
       if (startDate) {
