@@ -6,7 +6,7 @@ export function useSoundWords() {
   const loading = ref(false)
   const error = ref(null)
 
-  // 加载拟声词库（共享拟声词 + 用户自己的拟声词）
+  // 加载拟声词库（所有用户的拟声词都可以共享）
   async function loadWords(userId) {
     loading.value = true
     error.value = null
@@ -15,7 +15,6 @@ export function useSoundWords() {
       const { data, error: err } = await supabase
         .from('fart_sound_words')
         .select('*')
-        .or(`user_id.eq.00000000-0000-0000-0000-000000000001,user_id.eq.${userId}`)
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
 
