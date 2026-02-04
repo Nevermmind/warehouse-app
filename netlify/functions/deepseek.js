@@ -10,7 +10,7 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { messages, temperature = 0.7, max_tokens } = JSON.parse(event.body);
+    const { messages, temperature = 0.7, max_tokens = 400 } = JSON.parse(event.body);
 
     // 从环境变量获取 API Key
     const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
@@ -22,13 +22,10 @@ exports.handler = async function(event, context) {
     const requestBody = {
       model: 'deepseek-chat',
       messages,
-      temperature
+      temperature,
+      // 注意：24小时/7天/30天所有报告都统一使用 max_tokens: 400
+      max_tokens: Math.min(max_tokens, 400)  // 强制最大 400 tokens
     };
-
-    // 如果提供了 max_tokens，添加到请求中
-    if (max_tokens) {
-      requestBody.max_tokens = max_tokens;
-    }
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -56,6 +53,25 @@ exports.handler = async function(event, context) {
 
   } catch (error) {
     console.error('DeepSeek function error:', error);
+
+    // 检查是否超时
+    if (error.name === 'AbortError' || error.message.includes('timeout') || error.code === 'ETIMEDOUT') {
+      // 返回提示词，让用户手动生成
+      const { messages } = JSON.parse(event.body || '{}');
+      const lastPrompt = messages?.[messages.length - 1]?.content || '';
+
+      return {
+        statusCode: 408,  // Request Timeout
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          error: 'AI 分析超时',
+          prompt: lastPrompt,
+          message: '分析超时，您可以复制提示词到其他 AI 软件生成'
+        })
+      };
+    }
 
     return {
       statusCode: 500,

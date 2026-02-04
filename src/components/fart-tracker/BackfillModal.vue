@@ -36,18 +36,25 @@
 
         <!-- 声音等级选择器 -->
         <div class="form-section">
-          <label class="form-label">声音等级</label>
+          <label class="form-label">声音等级（可选，无声可留空）</label>
           <div class="star-rating">
             <button
               v-for="i in 5"
               :key="i"
-              @click="soundLevel = i"
+              @click="soundLevel = soundLevel === i ? 0 : i"
               :class="{ active: i <= soundLevel }"
               class="star-btn"
             >
               <span class="star-icon">{{ i <= soundLevel ? '⭐' : '☆' }}</span>
             </button>
           </div>
+          <button
+            v-if="soundLevel > 0"
+            @click="soundLevel = 0"
+            class="btn-clear-sound"
+          >
+            清除响度（设为无声）
+          </button>
         </div>
 
         <!-- 臭/不臭开关 -->
@@ -115,9 +122,9 @@ const isSmelly = ref(false)
 const selectedWordId = ref(null)
 const notes = ref('')
 
-// 是否可以提交
+// 是否可以提交（只需要有时间即可）
 const canSubmit = computed(() => {
-  return soundLevel.value > 0 && recordTime.value !== ''
+  return recordTime.value !== ''
 })
 
 // 获取声调标签
@@ -168,7 +175,7 @@ function handleBackfill() {
 
   emit('backfill', {
     record_time: new Date(recordTime.value).toISOString(),
-    sound_level: soundLevel.value,
+    sound_level: soundLevel.value || 0,  // 0 表示无声
     is_smelly: isSmelly.value,
     sound_word_id: selectedWordId.value,
     notes: notes.value.trim() || null
@@ -444,6 +451,23 @@ function handleBackfill() {
 .btn-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 清除响度按钮 */
+.btn-clear-sound {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-sound:hover {
+  background: #f1f3f4;
 }
 
 @media (min-width: 769px) {

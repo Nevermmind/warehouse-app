@@ -1,14 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue'
+import Dashboard from '../views/Dashboard.vue'
+import Warehouse from '../views/Warehouse.vue'
 import Rules from '../views/Rules.vue'
 import CategoryManagement from '../views/CategoryManagement.vue'
 import FartTracker from '../views/FartTracker.vue'
+import CommuteTracker from '../views/CommuteTracker.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: Home
+    name: 'Dashboard',
+    component: Dashboard
+  },
+  {
+    path: '/warehouse',
+    name: 'Warehouse',
+    component: Warehouse
   },
   {
     path: '/rules',
@@ -24,6 +31,11 @@ const routes = [
     path: '/fart-tracker',
     name: 'FartTracker',
     component: FartTracker
+  },
+  {
+    path: '/commute-tracker',
+    name: 'CommuteTracker',
+    component: CommuteTracker
   }
 ]
 

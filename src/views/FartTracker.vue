@@ -72,6 +72,7 @@
       <RecordList
         :records="records"
         @delete="handleDeleteRecord"
+        @edit="handleEditRecord"
       />
 
       <!-- 快速记录弹窗 -->
@@ -106,6 +107,15 @@
         :records="records"
         @close="showAIAnalysis = false"
       />
+
+      <!-- 编辑记录弹窗 -->
+      <EditRecordModal
+        :show="showEditRecord"
+        :record="editingRecord"
+        :soundWords="soundWords"
+        @close="showEditRecord = false"
+        @save="handleUpdateRecord"
+      />
     </div>
   </div>
 </template>
@@ -114,14 +124,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
-import AuthForm from '../components/AuthForm.vue'
-import Sidebar from '../components/Sidebar.vue'
-import QuickRecordModal from '../components/QuickRecordModal.vue'
-import BackfillModal from '../components/BackfillModal.vue'
-import SoundWordManager from '../components/SoundWordManager.vue'
-import RecordList from '../components/RecordList.vue'
-import StatsChart from '../components/StatsChart.vue'
-import AIAnalysisModal from '../components/AIAnalysisModal.vue'
+import AuthForm from '../components/common/AuthForm.vue'
+import Sidebar from '../components/common/Sidebar.vue'
+import QuickRecordModal from '../components/fart-tracker/QuickRecordModal.vue'
+import BackfillModal from '../components/fart-tracker/BackfillModal.vue'
+import SoundWordManager from '../components/fart-tracker/SoundWordManager.vue'
+import RecordList from '../components/fart-tracker/RecordList.vue'
+import StatsChart from '../components/fart-tracker/StatsChart.vue'
+import AIAnalysisModal from '../components/fart-tracker/AIAnalysisModal.vue'
+import EditRecordModal from '../components/fart-tracker/EditRecordModal.vue'
 import { useFartRecords } from '../composables/useFartRecords'
 import { useSoundWords } from '../composables/useSoundWords'
 
@@ -134,15 +145,17 @@ const showQuickRecord = ref(false)
 const showBackfill = ref(false)
 const showSoundWordManager = ref(false)
 const showAIAnalysis = ref(false)
+const showEditRecord = ref(false)
+const editingRecord = ref(null)
 
 // Composables
-const { records, loadRecords, quickRecord, backfill, deleteRecord, getStats } = useFartRecords()
+const { records, loadRecords, quickRecord, backfill, deleteRecord, updateRecord, getStats } = useFartRecords()
 const { words: soundWords, loadWords, addWord, updateWord, deleteWord } = useSoundWords()
 
 // 统计数据
-const todayCount = computed(() => getStats(1).total)
-const weekCount = computed(() => getStats(7).total)
-const monthCount = computed(() => getStats(30).total)
+const todayCount = computed(() => getStats(0).total)  // 0 = 只统计今天
+const weekCount = computed(() => getStats(7).total)   // 7 = 统计最近7天
+const monthCount = computed(() => getStats(30).total) // 30 = 统计最近30天
 
 // 打开侧边栏
 function openSidebar() {
@@ -253,6 +266,25 @@ async function handleDeleteRecord(id) {
   } catch (error) {
     console.error('删除记录失败:', error)
     alert('删除失败: ' + error.message)
+  }
+}
+
+// 处理编辑记录
+async function handleEditRecord(record) {
+  editingRecord.value = record
+  showEditRecord.value = true
+}
+
+// 处理更新记录
+async function handleUpdateRecord(id, updateData) {
+  try {
+    await updateRecord(id, updateData)
+    await loadRecords(user.value.id)
+    showEditRecord.value = false
+    alert('记录更新成功！')
+  } catch (error) {
+    console.error('更新记录失败:', error)
+    alert('更新失败: ' + error.message)
   }
 }
 

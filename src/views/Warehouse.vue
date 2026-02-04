@@ -113,13 +113,13 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
-import AuthForm from '../components/AuthForm.vue'
-import Sidebar from '../components/Sidebar.vue'
-import StatsCard from '../components/StatsCard.vue'
-import ItemList from '../components/ItemList.vue'
-import EditItemModal from '../components/EditItemModal.vue'
-import AddItemModal from '../components/AddItemModal.vue'
-import QuickAddModal from '../components/QuickAddModal.vue'
+import AuthForm from '../components/common/AuthForm.vue'
+import Sidebar from '../components/common/Sidebar.vue'
+import StatsCard from '../components/warehouse/StatsCard.vue'
+import ItemList from '../components/warehouse/ItemList.vue'
+import EditItemModal from '../components/warehouse/EditItemModal.vue'
+import AddItemModal from '../components/warehouse/AddItemModal.vue'
+import QuickAddModal from '../components/warehouse/QuickAddModal.vue'
 
 const router = useRouter()
 

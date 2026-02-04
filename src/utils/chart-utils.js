@@ -114,6 +114,46 @@ export function groupRecordsBySoundWord(records, days) {
 }
 
 /**
+ * 按日期分组统计臭屁记录
+ * @param {Array} records - 记录数组
+ * @param {number} days - 天数
+ * @returns {Object} 日期标签数组和数据数组
+ */
+export function groupSmellyFartsByDate(records, days) {
+  const dateRange = generateDateRange(days)
+  const dateLabels = []
+  const data = []
+
+  // 格式化日期标签
+  dateRange.forEach(date => {
+    const today = new Date()
+    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) {
+      dateLabels.push('今天')
+    } else if (diffDays === 1) {
+      dateLabels.push('昨天')
+    } else {
+      dateLabels.push(format(date, 'M/d', { locale: zhCN }))
+    }
+
+    // 统计当天臭屁记录数（使用 is_smelly 字段）
+    const dayStart = date.toISOString()
+    const dayEnd = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString()
+
+    const count = records.filter(record => {
+      return record.record_time >= dayStart &&
+             record.record_time < dayEnd &&
+             record.is_smelly === true
+    }).length
+
+    data.push(count)
+  })
+
+  return { labels: dateLabels, data }
+}
+
+/**
  * 获取声调标签
  */
 function getToneLabel(tone) {

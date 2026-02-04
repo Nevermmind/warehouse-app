@@ -61,7 +61,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js/auto'
-import { groupRecordsByDate, groupRecordsBySoundWord } from '../utils/chart-utils'
+import { groupRecordsByDate, groupRecordsBySoundWord, groupSmellyFartsByDate } from '../../utils/chart-utils'
 
 const props = defineProps({
   records: {
@@ -92,7 +92,8 @@ function initLineChart() {
   if (!lineChartRef.value) return
 
   const ctx = lineChartRef.value.getContext('2d')
-  const { labels, data } = groupRecordsByDate(props.records, lineChartDays.value)
+  const { labels, data: totalData } = groupRecordsByDate(props.records, lineChartDays.value)
+  const { data: smellyData } = groupSmellyFartsByDate(props.records, lineChartDays.value)
 
   if (lineChart) {
     lineChart.destroy()
@@ -102,27 +103,49 @@ function initLineChart() {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: '放屁次数',
-        data,
-        borderColor: '#1a73e8',
-        backgroundColor: 'rgba(26, 115, 232, 0.1)',
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#1a73e8',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7
-      }]
+      datasets: [
+        {
+          label: '放屁次数',
+          data: totalData,
+          borderColor: '#1a73e8',
+          backgroundColor: 'rgba(26, 115, 232, 0.15)',
+          borderWidth: 3,
+          fill: '+1', // 填充到下一个数据集（橙色线）
+          tension: 0.4,
+          pointBackgroundColor: '#1a73e8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        },
+        {
+          label: '臭屁次数',
+          data: smellyData,
+          borderColor: '#FF9500', // 橙色
+          backgroundColor: 'rgba(255, 149, 0, 0.15)',
+          borderWidth: 3,
+          fill: true, // 填充到X轴
+          tension: 0.4,
+          pointBackgroundColor: '#FF9500',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15,
+            font: { size: 12 }
+          }
         },
         tooltip: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -131,7 +154,7 @@ function initLineChart() {
           bodyFont: { size: 13 },
           callbacks: {
             label: function(context) {
-              return `数量: ${context.parsed.y} 次`
+              return `${context.dataset.label}: ${context.parsed.y} 次`
             }
           }
         }
@@ -171,12 +194,6 @@ function initBarChart() {
     barChart.destroy()
   }
 
-  // 生成颜色
-  const colors = [
-    '#1a73e8', '#4285f4', '#5e97f6', '#7baaf7',
-    '#8ab4f8', '#aecbfa', '#d2e3fc', '#e8f0fe'
-  ]
-
   barChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -184,10 +201,11 @@ function initBarChart() {
       datasets: [{
         label: '次数',
         data,
-        backgroundColor: colors.map(color => color + 'CC'),
-        borderColor: colors,
-        borderWidth: 2,
-        borderRadius: 8
+        backgroundColor: '#1a73e8', // 统一使用蓝色
+        borderColor: 'transparent', // 边框透明
+        borderWidth: 0,
+        borderRadius: 8,
+        barPercentage: 0.6 // 条形宽度（0.6 = 60%，默认是0.9）
       }]
     },
     options: {
@@ -235,9 +253,11 @@ function initBarChart() {
 
 // 监听时间范围变化
 watch(lineChartDays, () => {
-  const { labels, data } = groupRecordsByDate(props.records, lineChartDays.value)
+  const { labels, data: totalData } = groupRecordsByDate(props.records, lineChartDays.value)
+  const { data: smellyData } = groupSmellyFartsByDate(props.records, lineChartDays.value)
   lineChart.data.labels = labels
-  lineChart.data.datasets[0].data = data
+  lineChart.data.datasets[0].data = totalData
+  lineChart.data.datasets[1].data = smellyData
   lineChart.update()
 })
 

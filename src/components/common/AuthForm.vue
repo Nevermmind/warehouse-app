@@ -58,7 +58,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { supabase } from '../utils/supabase'
+import { supabase } from '../../utils/supabase'
 
 const emit = defineEmits(['auth-success'])
 

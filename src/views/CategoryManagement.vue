@@ -76,8 +76,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../utils/supabase'
-import AuthForm from '../components/AuthForm.vue'
-import Sidebar from '../components/Sidebar.vue'
+import AuthForm from '../components/common/AuthForm.vue'
+import Sidebar from '../components/common/Sidebar.vue'
 
 // 响应式数据
 const user = ref(null)

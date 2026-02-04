@@ -98,8 +98,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
-import AuthForm from '../components/AuthForm.vue'
-import Sidebar from '../components/Sidebar.vue'
+import AuthForm from '../components/common/AuthForm.vue'
+import Sidebar from '../components/common/Sidebar.vue'
 
 const router = useRouter()
 const sidebarRef = ref(null)

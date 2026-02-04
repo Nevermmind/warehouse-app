@@ -40,6 +40,13 @@
         >
           🗑️
         </button>
+        <button
+          @click="handleEdit(record)"
+          class="btn-edit-record"
+          title="编辑"
+        >
+          ✏️
+        </button>
       </div>
     </div>
 
@@ -76,7 +83,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['delete'])
+const emit = defineEmits(['delete', 'edit'])
 
 const PAGE_SIZE = 10
 const currentPage = ref(1)
@@ -124,6 +131,7 @@ function formatTime(timeStr) {
 
 // 获取星星
 function getStars(level) {
+  if (!level || level === 0) return '🔇 无声'
   return '⭐'.repeat(level) + '☆'.repeat(5 - level)
 }
 
@@ -144,6 +152,11 @@ function handleDelete(id) {
   if (confirm('确定要删除这条记录吗？')) {
     emit('delete', id)
   }
+}
+
+// 处理编辑
+function handleEdit(record) {
+  emit('edit', record)
 }
 
 // 监听记录变化，重置到第一页
@@ -289,6 +302,24 @@ export default {
 }
 
 .btn-delete-record:hover {
+  transform: scale(1.2);
+}
+
+.btn-edit-record {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.record-item:hover .btn-edit-record {
+  opacity: 1;
+}
+
+.btn-edit-record:hover {
   transform: scale(1.2);
 }
 

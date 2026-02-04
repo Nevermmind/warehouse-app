@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../utils/supabase'
+import { startOfDay, subDays } from 'date-fns'
 
 export function useFartRecords() {
   const records = ref([])
@@ -103,15 +104,50 @@ export function useFartRecords() {
     }
   }
 
+  // 更新记录
+  async function updateRecord(id, updateData) {
+    try {
+      const { data, error: err } = await supabase
+        .from('fart_records')
+        .update({
+          sound_level: updateData.sound_level,
+          is_smelly: updateData.is_smelly,
+          notes: updateData.notes,
+          sound_word_id: updateData.sound_word_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (err) throw err
+
+      // 更新本地数据
+      const index = records.value.findIndex(r => r.id === id)
+      if (index !== -1 && data) {
+        records.value[index] = data
+      }
+
+      return data
+    } catch (err) {
+      console.error('更新记录失败:', err)
+      throw err
+    }
+  }
+
   // 统计数据
+  // days: 统计最近几天（例如 1 = 从昨天0点到现在，0 = 今天0点到现在）
   function getStats(days = 7) {
     const now = new Date()
-    const startDate = new Date(now)
-    startDate.setDate(now.getDate() - days)
+    // 使用 startOfDay 获取当天的开始时间（自动处理时区）
+    // days=0 表示今天，days=1 表示从昨天开始
+    const startDate = startOfDay(subDays(now, days))
 
-    const filtered = records.value.filter(r =>
-      new Date(r.record_time) >= startDate
-    )
+    const filtered = records.value.filter(r => {
+      // 将记录时间转换为本地 Date 对象，然后比较时间戳
+      const recordDate = new Date(r.record_time)
+      return recordDate.getTime() >= startDate.getTime()
+    })
 
     return {
       total: filtered.length,
@@ -130,6 +166,7 @@ export function useFartRecords() {
     quickRecord,
     backfill,
     deleteRecord,
+    updateRecord,
     getStats
   }
 }

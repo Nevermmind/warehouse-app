@@ -9,31 +9,38 @@
 
     <div class="sidebar-inner">
       <div class="sidebar-header">
-        <h2 v-if="!isCollapsed || !isMobile">📦 仓库管理</h2>
+        <router-link to="/" class="logo-link" @click="onNavClick">
+          <h2 v-if="!isCollapsed || !isMobile">📦 首页</h2>
+        </router-link>
         <button class="toggle-btn" @click="toggleSidebar">
           {{ isCollapsed && !isMobile ? '☰' : '✕' }}
         </button>
       </div>
 
       <nav class="sidebar-nav">
-        <router-link to="/" class="nav-item" @click="onNavClick">
-          <span class="nav-icon">🏠</span>
-          <span v-if="!isCollapsed || !isMobile" class="nav-text">首页</span>
+        <router-link to="/warehouse" class="nav-item" @click="onNavClick">
+          <span class="nav-icon">📦</span>
+          <span v-if="!isCollapsed || !isMobile" class="nav-text">仓库管理</span>
         </router-link>
 
         <router-link to="/categories" class="nav-item" @click="onNavClick">
-          <span class="nav-icon">📁</span>
+          <span class="nav-icon">🏷️</span>
           <span v-if="!isCollapsed || !isMobile" class="nav-text">类别管理</span>
-        </router-link>
-
-        <router-link to="/rules" class="nav-item" @click="onNavClick">
-          <span class="nav-icon">📝</span>
-          <span v-if="!isCollapsed || !isMobile" class="nav-text">家庭规定</span>
         </router-link>
 
         <router-link to="/fart-tracker" class="nav-item" @click="onNavClick">
           <span class="nav-icon">💨</span>
           <span v-if="!isCollapsed || !isMobile" class="nav-text">隐藏功能</span>
+        </router-link>
+
+        <router-link to="/commute-tracker" class="nav-item" @click="onNavClick">
+          <span class="nav-icon">⏰</span>
+          <span v-if="!isCollapsed || !isMobile" class="nav-text">上下班时间</span>
+        </router-link>
+
+        <router-link to="/rules" class="nav-item" @click="onNavClick">
+          <span class="nav-icon">📋</span>
+          <span v-if="!isCollapsed || !isMobile" class="nav-text">家庭规定</span>
         </router-link>
       </nav>
 
@@ -140,6 +147,16 @@ defineExpose({
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
+}
+
+.logo-link {
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+}
+
+.logo-link:hover h2 {
+  color: #007AFF;
 }
 
 .toggle-btn {

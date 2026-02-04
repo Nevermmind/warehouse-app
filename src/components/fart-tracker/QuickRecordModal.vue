@@ -43,18 +43,25 @@
 
         <!-- 声音等级选择器 -->
         <div class="form-section">
-          <label class="form-label">声音等级</label>
+          <label class="form-label">声音等级（可选，无声可留空）</label>
           <div class="star-rating">
             <button
               v-for="i in 5"
               :key="i"
-              @click="soundLevel = i"
+              @click="soundLevel = soundLevel === i ? 0 : i"
               :class="{ active: i <= soundLevel }"
               class="star-btn"
             >
               <span class="star-icon">{{ i <= soundLevel ? '⭐' : '☆' }}</span>
             </button>
           </div>
+          <button
+            v-if="soundLevel > 0"
+            @click="soundLevel = 0"
+            class="btn-clear-sound"
+          >
+            清除响度（设为无声）
+          </button>
         </div>
 
         <!-- 臭/不臭开关 -->
@@ -77,7 +84,6 @@
           <button @click="close" class="btn-cancel">取消</button>
           <button
             @click="handleRecord"
-            :disabled="soundLevel === 0"
             class="btn-confirm"
           >
             记录
@@ -140,10 +146,9 @@ function close() {
 
 // 处理记录
 function handleRecord() {
-  if (soundLevel.value === 0) return
-
+  // 至少需要记录臭/不臭状态
   emit('record', {
-    soundLevel: soundLevel.value,
+    soundLevel: soundLevel.value || 0,  // 0 表示无声
     isSmelly: isSmelly.value,
     soundWordId: selectedWordId.value
   })
@@ -524,6 +529,23 @@ async function handleAIAnalyze() {
 .btn-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 清除响度按钮 */
+.btn-clear-sound {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-sound:hover {
+  background: #f1f3f4;
 }
 
 @media (min-width: 769px) {
