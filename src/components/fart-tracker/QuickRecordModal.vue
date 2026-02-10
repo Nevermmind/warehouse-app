@@ -38,6 +38,13 @@
             >
               {{ word.word }} ({{ getToneLabel(word.tone) }})
             </button>
+            <button
+              @click="selectedWordId = null"
+              :class="{ active: selectedWordId === null }"
+              class="word-chip"
+            >
+              无
+            </button>
           </div>
         </div>
 
@@ -95,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   show: {
@@ -109,6 +116,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'record'])
+
+// 监听 soundWords 变化，输出调试信息
+watch(() => props.soundWords, (newWords) => {
+  console.log('📝 QuickRecordModal - soundWords 更新:', newWords?.length || 0, '条')
+  console.log('📝 拟声词列表:', newWords)
+}, { immediate: true })
 
 // 表单数据
 const soundLevel = ref(0)
@@ -186,20 +199,50 @@ async function handleAIAnalyze() {
 3. 有臭味相关的词（臭、味道、难闻等）就是true
 4. 只返回 JSON，不要其他内容`
 
-    const response = await fetch('/.netlify/functions/deepseek', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3
+    // 检查是否有本地 API Key（本地开发模式）
+    const localApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY
+
+    let response
+
+    if (localApiKey) {
+      // 本地开发：直接调用 DeepSeek API
+      response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
       })
-    })
+    } else {
+      // 生产环境：使用 Netlify Functions
+      response = await fetch('/.netlify/functions/deepseek', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
+      })
+    }
 
     if (!response.ok) {
+      // 处理超时情况（返回 408 状态码）
+      if (response.status === 408) {
+        throw new Error('AI 分析超时，请稍后重试')
+      }
       throw new Error('AI 分析失败')
     }
 

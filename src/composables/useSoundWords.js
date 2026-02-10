@@ -53,15 +53,11 @@ export function useSoundWords() {
   // 更新拟声词
   async function updateWord(id, wordData) {
     try {
-      console.log('更新拟声词:', id, wordData)
-
       const { data, error: err } = await supabase
         .from('fart_sound_words')
         .update(wordData)
         .eq('id', id)
         .select()
-
-      console.log('更新结果:', data, err)
 
       if (err) throw err
 
@@ -69,7 +65,6 @@ export function useSoundWords() {
       const index = words.value.findIndex(w => w.id === id)
       if (index !== -1 && data && data.length > 0) {
         words.value[index] = data[0]
-        console.log('本地数组已更新:', words.value[index])
       }
 
       return data && data.length > 0 ? data[0] : null

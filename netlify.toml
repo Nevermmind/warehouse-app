@@ -33,3 +33,20 @@
 [functions.check-expiry]
   schedule = "0 11 * * *"
 
+# Edge Functions 配置 - 支持 150 秒超时
+[functions.deepseek]
+  runtime = "edge"
+  timeout = 150
+
+[functions.commute-weekly-report]
+  runtime = "edge"
+  timeout = 150
+
+[functions.commute-monthly-report]
+  runtime = "edge"
+  timeout = 150
+
+# 默认 Function 超时配置
+[functions]
+  timeout = 150
+

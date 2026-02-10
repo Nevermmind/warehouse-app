@@ -154,6 +154,41 @@ export function groupSmellyFartsByDate(records, days) {
 }
 
 /**
+ * 按小时分组统计记录（0-23小时）
+ * @param {Array} records - 记录数组
+ * @param {number} days - 天数（1=今天，7=近七天，30=近一个月）
+ * @returns {Object} 小时标签数组和数据数组
+ */
+export function groupRecordsByHour(records, days) {
+  const now = new Date()
+  const startDate = startOfDay(subDays(now, days - 1))
+  const startDateStr = startDate.toISOString()
+
+  // 过滤指定天数内的记录
+  const filteredRecords = records.filter(record => {
+    return record.record_time >= startDateStr
+  })
+
+  // 初始化24小时的计数数组
+  const hourlyCounts = new Array(24).fill(0)
+
+  // 统计每个小时的记录数
+  filteredRecords.forEach(record => {
+    const recordDate = new Date(record.record_time)
+    const hour = recordDate.getHours()
+    hourlyCounts[hour]++
+  })
+
+  // 生成小时标签（0-23）
+  const hourLabels = Array.from({ length: 24 }, (_, i) => `${i}时`)
+
+  return {
+    labels: hourLabels,
+    data: hourlyCounts
+  }
+}
+
+/**
  * 获取声调标签
  */
 function getToneLabel(tone) {

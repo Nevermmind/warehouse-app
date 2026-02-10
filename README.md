@@ -1,6 +1,6 @@
 # 家庭管理系统 (Family Management System)
 
-> **最后更新**: 2026-02-04
+> **最后更新**: 2026-02-06
 > **版本**: v2.2
 > **技术栈**: Vue 3 + Vite + Supabase + Netlify
 
@@ -1463,6 +1463,10 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ## 📄 许可证
 
 本项目为个人家庭管理项目，仅供学习参考。
+
+---
+
+未来想添加的功能：记录上下班通勤分段数据
 
 ---
 

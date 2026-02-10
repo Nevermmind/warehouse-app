@@ -54,12 +54,12 @@
           <div class="stat-unit">次</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">本周</div>
+          <div class="stat-label">近7天</div>
           <div class="stat-value">{{ weekCount }}</div>
           <div class="stat-unit">次</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">本月</div>
+          <div class="stat-label">近30天</div>
           <div class="stat-value">{{ monthCount }}</div>
           <div class="stat-unit">次</div>
         </div>

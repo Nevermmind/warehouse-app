@@ -10,25 +10,25 @@
         <!-- 时间范围选择 -->
         <div class="time-selector">
           <button
+            @click="days = 0"
+            :class="{ active: days === 0 }"
+            class="day-btn"
+          >
+            今日
+          </button>
+          <button
             @click="days = 7"
             :class="{ active: days === 7 }"
             class="day-btn"
           >
-            近 7 天
+            近7天
           </button>
           <button
             @click="days = 30"
             :class="{ active: days === 30 }"
             class="day-btn"
           >
-            近 30 天
-          </button>
-          <button
-            @click="days = 1"
-            :class="{ active: days === 1 }"
-            class="day-btn"
-          >
-            近 24 小时
+            近30天
           </button>
         </div>
 
@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { format, subDays, subHours, startOfDay } from 'date-fns'
+import { format, subDays, startOfDay } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { supabase } from '../../utils/supabase'
 
@@ -101,27 +101,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const days = ref(7)
+const days = ref(0)
 const analyzing = ref(false)
 const analysisResult = ref('')
 const showCopyPromptButton = ref(false)
 const lastPrompt = ref('')
 const isSendingEmail = ref(false)
 
-// 过滤指定天数的记录
+// 过滤指定天数的记录（从0点开始）
 const filteredRecords = computed(() => {
   if (props.records.length === 0) return []
 
   const now = new Date()
-  let startDate
-
-  // 1天时使用小时级过滤（24小时）
-  if (days.value === 1) {
-    startDate = subHours(now, 24)
-  } else {
-    startDate = startOfDay(subDays(now, days.value))
-  }
-
+  // days=0 表示今天，days=7 表示7天前，days=30 表示30天前
+  const startDate = startOfDay(subDays(now, days.value))
   const startDateStr = startDate.toISOString()
 
   return props.records.filter(record => {
@@ -197,7 +190,7 @@ async function handleAnalyze() {
           model: 'deepseek-chat',
           messages,
           temperature: 0.8,
-          max_tokens: 400
+          max_tokens: 2000
         })
       })
     } else {
@@ -210,7 +203,7 @@ async function handleAnalyze() {
         body: JSON.stringify({
           messages,
           temperature: 0.8,
-          max_tokens: 400
+          max_tokens: 2000
         })
       })
     }
@@ -281,21 +274,50 @@ function prepareAnalysisPrompt() {
   const records = filteredRecords.value
   const total = records.length
 
-  // 统计数据
+  if (total === 0) {
+    return '该时间段暂无数据，无法进行分析。'
+  }
+
+  // 1. 基本统计数据
   const smellyCount = records.filter(r => r.is_smelly).length
+  const smellyPercent = total > 0 ? ((smellyCount / total) * 100).toFixed(1) : 0
   const avgSoundLevel = total > 0
     ? (records.reduce((sum, r) => sum + r.sound_level, 0) / total).toFixed(1)
     : 0
 
-  // 按小时统计
+  // 2. 按小时统计（0-23小时）
   const hourlyStats = Array(24).fill(0)
   records.forEach(r => {
     const hour = new Date(r.record_time).getHours()
     hourlyStats[hour]++
   })
   const peakHour = hourlyStats.indexOf(Math.max(...hourlyStats))
+  const peakHourCount = hourlyStats[peakHour]
 
-  // 拟声词统计
+  // 找出所有有记录的小时
+  const activeHours = hourlyStats
+    .map((count, hour) => ({ hour, count }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+
+  // 3. 按天统计（对于近7天和近30天）
+  let dailyStats = []
+  if (days.value > 0) {
+    const dailyMap = {}
+    records.forEach(r => {
+      const date = new Date(r.record_time)
+      const dateKey = `${date.getMonth() + 1}/${date.getDate()}`
+      if (!dailyMap[dateKey]) {
+        dailyMap[dateKey] = 0
+      }
+      dailyMap[dateKey]++
+    })
+    dailyStats = Object.entries(dailyMap)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => b.count - a.count)
+  }
+
+  // 4. 拟声词统计
   const wordStats = {}
   records.forEach(r => {
     if (r.sound_word) {
@@ -303,30 +325,33 @@ function prepareAnalysisPrompt() {
       wordStats[key] = (wordStats[key] || 0) + 1
     }
   })
-  const topWord = Object.entries(wordStats).sort((a, b) => b[1] - a[1])[0]
+  const topWords = Object.entries(wordStats)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
 
-  // 趋势分析
+  // 5. 趋势分析
   const now = new Date()
   let trend = '稳定'
   let trendReason = ''
 
-  if (days.value === 1) {
-    // 24小时：前12小时 vs 后12小时
-    const midPoint = subHours(now, 12)
+  if (days.value === 0) {
+    // 今日：前12小时 vs 后12小时
+    const midPoint = new Date(now)
+    midPoint.setHours(12, 0, 0, 0)
     const recentRecords = records.filter(r => new Date(r.record_time) >= midPoint)
     const earlierRecords = records.filter(r => new Date(r.record_time) < midPoint)
 
     if (recentRecords.length > earlierRecords.length) {
       trend = '上升'
-      trendReason = '最近12小时比前12小时更频繁'
+      trendReason = '下午比上午更频繁'
     } else if (recentRecords.length < earlierRecords.length) {
       trend = '下降'
-      trendReason = '最近12小时减少'
+      trendReason = '下午比上午减少'
     } else {
-      trendReason = '最近12小时和前12小时持平'
+      trendReason = '上午和下午持平'
     }
   } else {
-    // 7天/30天：前半段 vs 后半段
+    // 近7天/近30天：前半段 vs 后半段
     const midPoint = startOfDay(subDays(now, Math.floor(days.value / 2)))
     const recentRecords = records.filter(r => new Date(r.record_time) >= midPoint)
     const earlierRecords = records.filter(r => new Date(r.record_time) < midPoint)
@@ -342,41 +367,69 @@ function prepareAnalysisPrompt() {
     }
   }
 
-  // 时间范围标签
-  const timeRangeLabel = days.value === 1 ? '24小时' : `${days.value}天`
+  // 6. 时间范围标签
+  const timeRangeLabel = days.value === 0 ? '今日' : `近${days.value}天`
 
-  // 构建 prompt
-  return `请以轻松有趣的风格分析以下放屁数据：
+  // 7. 构建详细的统计数据摘要
+  let statsSummary = `## 统计数据摘要\n\n`
+  statsSummary += `**基本信息**\n`
+  statsSummary += `- 分析周期：${timeRangeLabel}\n`
+  statsSummary += `- 总次数：${total} 次\n`
+  statsSummary += `- 平均声音等级：${avgSoundLevel} 星\n`
+  statsSummary += `- 臭屁次数：${smellyCount} 次（${smellyPercent}%）\n`
+  statsSummary += `- 趋势：${trend}（${trendReason}）\n\n`
 
-## 基本信息
-- 分析周期：近 ${timeRangeLabel}
-- 总次数：${total} 次
-- 平均声音等级：${avgSoundLevel} 星
-- 臭屁占比：${((smellyCount / total) * 100).toFixed(1)}%
-- 趋势：${trend}（${trendReason}）
+  statsSummary += `**时间分布**\n`
+  statsSummary += `- 高峰时段：${peakHour}:00-${peakHour + 1}:00（${peakHourCount}次）\n`
 
-## 详细数据
-### 时间分布
-- 高峰时段：${peakHour}:00 - ${peakHour + 1}:00
-- 拟声词偏好：${topWord ? topWord[0] + '(' + topWord[1] + '次' : '无'}
+  if (activeHours.length > 0) {
+    statsSummary += `- 活跃时段排名：\n`
+    activeHours.slice(0, 5).forEach((item, index) => {
+      statsSummary += `  ${index + 1}. ${item.hour}:00-${item.hour + 1}:00：${item.count}次\n`
+    })
+  }
 
-### 最近记录样本
-${days.value === 1
-  ? records.slice(0, 10).map(r => {  // 24小时显示更多样本（10条）
+  if (dailyStats.length > 0) {
+    statsSummary += `\n**每日统计**\n`
+    statsSummary += `- 总天数：${dailyStats.length} 天\n`
+    statsSummary += `- 日均次数：${(total / dailyStats.length).toFixed(1)} 次\n`
+    statsSummary += `- 单日最高：${dailyStats[0].date}（${dailyStats[0].count}次）\n`
+    statsSummary += `- 单日最低：${dailyStats[dailyStats.length - 1].date}（${dailyStats[dailyStats.length - 1].count}次）\n`
+  }
+
+  if (topWords.length > 0) {
+    statsSummary += `\n**拟声词偏好**\n`
+    topWords.forEach(([word, count], index) => {
+      statsSummary += `- ${index + 1}. ${word}（${count}次）\n`
+    })
+  } else {
+    statsSummary += `\n**拟声词偏好**\n- 无拟声词记录\n`
+  }
+
+  statsSummary += `\n**最近记录样本**\n`
+
+  // 今日：发送详细记录样本
+  // 近7天和近30天：只发送统计摘要，不发送明细
+  if (days.value === 0) {
+    const samples = records.slice(0, 10).map(r => {
       const time = format(new Date(r.record_time), 'HH:mm', { locale: zhCN })
       const stars = '⭐'.repeat(r.sound_level)
       const smelly = r.is_smelly ? '臭' : '无臭'
       const word = r.sound_word ? r.sound_word.word : '无拟声词'
       return `- ${time} ${stars} ${smelly} ${word}`
-    }).join('\n')
-  : records.slice(0, 5).map(r => {   // 7天/30天显示5条
-      const time = format(new Date(r.record_time), 'MM月dd日 HH:mm', { locale: zhCN })
-      const stars = '⭐'.repeat(r.sound_level)
-      const smelly = r.is_smelly ? '臭' : '无臭'
-      const word = r.sound_word ? r.sound_word.word : '无拟声词'
-      return `- ${time} ${stars} ${smelly} ${word}`
-    }).join('\n')
-}
+    })
+    statsSummary += samples.join('\n')
+  } else {
+    // 近7天和近30天：只送汇总数据，不送明细
+    statsSummary += `- 总记录数：${total} 条（明细已省略，避免超时）\n`
+    statsSummary += `- 数据覆盖范围：${dailyStats.length} 天\n`
+    statsSummary += `- 记录时间跨度：从 ${dailyStats[dailyStats.length - 1].date} 到 ${dailyStats[0].date}`
+  }
+
+  // 8. 构建 prompt
+  return `请以轻松有趣的风格分析以下放屁数据：
+
+${statsSummary}
 
 请从以下几个角度进行分析：
 1. **整体评价**：用幽默的方式评价这个数据
@@ -386,7 +439,7 @@ ${days.value === 1
 5. **臭味分析**：臭味占比和健康关联
 6. **趣味建议**：给出3-5个有趣又实用的小建议
 
-**注意：24小时/7天/30天所有报告都统一限制在 500 字以内，重点突出关键洞察和幽默解读。**
+**注意：所有报告都统一限制在 500 字以内，重点突出关键洞察和幽默解读。**
 
 请用轻松、幽默、有趣的语气，适当使用emoji，让分析结果既专业又好玩！`
 }

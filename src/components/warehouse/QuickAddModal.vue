@@ -263,25 +263,56 @@ async function parseInput() {
 
 现在开始分析：`
 
-    // 调用 DeepSeek API（通过 Netlify Function）
-    const response = await fetch('/.netlify/functions/deepseek', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 500
+    // 检查是否有本地 API Key（本地开发模式）
+    const localApiKey = import.meta.env.VITE_DEEPSEEK_API_KEY
+
+    let response
+
+    if (localApiKey) {
+      // 本地开发：直接调用 DeepSeek API
+      response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
       })
-    })
+    } else {
+      // 生产环境：使用 Netlify Functions
+      response = await fetch('/.netlify/functions/deepseek', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        })
+      })
+    }
 
     if (!response.ok) {
+      // 处理超时情况（返回 408 状态码）
+      if (response.status === 408) {
+        throw new Error('AI 分析超时，请稍后重试')
+      }
       const errorData = await response.json()
       throw new Error(errorData.error?.message || 'API 请求失败')
     }

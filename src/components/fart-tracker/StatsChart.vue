@@ -1,5 +1,38 @@
 <template>
   <div class="charts-container">
+    <!-- 折线图：每小时分布 -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>⏰ 每小时分布</h3>
+        <div class="time-toggle">
+          <button
+            @click="hourlyChartDays = 1"
+            :class="{ active: hourlyChartDays === 1 }"
+            class="toggle-btn"
+          >
+            今天
+          </button>
+          <button
+            @click="hourlyChartDays = 7"
+            :class="{ active: hourlyChartDays === 7 }"
+            class="toggle-btn"
+          >
+            近七天
+          </button>
+          <button
+            @click="hourlyChartDays = 30"
+            :class="{ active: hourlyChartDays === 30 }"
+            class="toggle-btn"
+          >
+            近一个月
+          </button>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas ref="hourlyChartRef"></canvas>
+      </div>
+    </div>
+
     <!-- 折线图：每日数量趋势 -->
     <div class="chart-card">
       <div class="chart-header">
@@ -23,10 +56,6 @@
       </div>
       <div class="chart-wrapper">
         <canvas ref="lineChartRef"></canvas>
-      </div>
-      <div class="chart-summary">
-        <span class="summary-label">近{{ lineChartDays }}天总计：</span>
-        <span class="summary-value">{{ lineChartTotal }} 次</span>
       </div>
     </div>
 
@@ -61,7 +90,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js/auto'
-import { groupRecordsByDate, groupRecordsBySoundWord, groupSmellyFartsByDate } from '../../utils/chart-utils'
+import { groupRecordsByDate, groupRecordsBySoundWord, groupSmellyFartsByDate, groupRecordsByHour } from '../../utils/chart-utils'
 
 const props = defineProps({
   records: {
@@ -75,15 +104,31 @@ Chart.register(...registerables)
 
 const lineChartRef = ref(null)
 const barChartRef = ref(null)
+const hourlyChartRef = ref(null)
 const lineChartDays = ref(7)
 const barChartDays = ref(7)
+const hourlyChartDays = ref(1)
 
 let lineChart = null
 let barChart = null
+let hourlyChart = null
 
 // 折线图总数
 const lineChartTotal = computed(() => {
   const result = groupRecordsByDate(props.records, lineChartDays.value)
+  return result.data.reduce((sum, count) => sum + count, 0)
+})
+
+// 每小时图表标签
+const hourlyChartDaysLabel = computed(() => {
+  if (hourlyChartDays.value === 1) return '今天'
+  if (hourlyChartDays.value === 7) return '近七天'
+  return '近一个月'
+})
+
+// 每小时图表总数
+const hourlyChartTotal = computed(() => {
+  const result = groupRecordsByHour(props.records, hourlyChartDays.value)
   return result.data.reduce((sum, count) => sum + count, 0)
 })
 
@@ -139,13 +184,7 @@ function initLineChart() {
       maintainAspectRatio: true,
       plugins: {
         legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 15,
-            font: { size: 12 }
-          }
+          display: false
         },
         tooltip: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -251,6 +290,81 @@ function initBarChart() {
   })
 }
 
+// 初始化每小时分布图
+function initHourlyChart() {
+  if (!hourlyChartRef.value) return
+
+  const ctx = hourlyChartRef.value.getContext('2d')
+  const { labels, data } = groupRecordsByHour(props.records, hourlyChartDays.value)
+
+  if (hourlyChart) {
+    hourlyChart.destroy()
+  }
+
+  hourlyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '放屁次数',
+        data,
+        borderColor: '#34C759', // 绿色
+        backgroundColor: 'rgba(52, 199, 89, 0.15)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#34C759',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14 },
+          bodyFont: { size: 13 },
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y} 次`
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            font: { size: 12 }
+          },
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          }
+        },
+        x: {
+          ticks: {
+            font: { size: 10 },
+            maxRotation: 45,
+            minRotation: 45
+          },
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  })
+}
+
 // 监听时间范围变化
 watch(lineChartDays, () => {
   const { labels, data: totalData } = groupRecordsByDate(props.records, lineChartDays.value)
@@ -268,14 +382,23 @@ watch(barChartDays, () => {
   barChart.update()
 })
 
+watch(hourlyChartDays, () => {
+  const { labels, data } = groupRecordsByHour(props.records, hourlyChartDays.value)
+  hourlyChart.data.labels = labels
+  hourlyChart.data.datasets[0].data = data
+  hourlyChart.update()
+})
+
 // 监听记录变化
 watch(() => props.records, () => {
   initLineChart()
   initBarChart()
+  initHourlyChart()
 }, { deep: true })
 
 onMounted(() => {
   nextTick(() => {
+    initHourlyChart()
     initLineChart()
     initBarChart()
   })
@@ -343,7 +466,7 @@ onMounted(() => {
 
 .chart-wrapper {
   position: relative;
-  height: 250px;
+  height: 205px;
   margin-bottom: 16px;
 }
 
@@ -374,13 +497,18 @@ onMounted(() => {
     font-size: 16px;
   }
 
+  .time-toggle {
+    gap: 4px;
+    padding: 3px;
+  }
+
   .toggle-btn {
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .chart-wrapper {
-    height: 200px;
+    height: 155px;
   }
 
   .summary-value {

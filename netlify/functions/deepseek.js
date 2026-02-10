@@ -1,6 +1,4 @@
-const fetch = require('node-fetch');
-
-exports.handler = async function(event, context) {
+export default async function(event, context) {
   // 只允许 POST 请求
   if (event.httpMethod !== 'POST') {
     return {
@@ -23,8 +21,7 @@ exports.handler = async function(event, context) {
       model: 'deepseek-chat',
       messages,
       temperature,
-      // 注意：24小时/7天/30天所有报告都统一使用 max_tokens: 400
-      max_tokens: Math.min(max_tokens, 400)  // 强制最大 400 tokens
+      max_tokens: max_tokens || 2000  // 默认 2000 tokens，确保报告完整
     };
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -83,4 +80,8 @@ exports.handler = async function(event, context) {
       })
     };
   }
+};
+
+export const config = {
+  runtime: 'edge'
 };

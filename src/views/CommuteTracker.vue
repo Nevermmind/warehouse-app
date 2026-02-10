@@ -30,6 +30,13 @@
         </div>
       </div>
 
+      <!-- 新增记录按钮 -->
+      <div v-if="activeTab === 'work' || activeTab === 'home'" class="quick-add-section">
+        <button @click="handleQuickAdd" class="quick-add-btn">
+          + 新增{{ activeTab === 'work' ? '上班' : '下班' }}通勤记录
+        </button>
+      </div>
+
       <!-- Tab 切换 -->
       <div class="tab-buttons">
         <button
@@ -55,6 +62,14 @@
         </button>
       </div>
 
+      <!-- 通勤统计图表 -->
+      <CommuteStatsChart
+        v-if="activeTab === 'work' || activeTab === 'home'"
+        :work-records="workRecords"
+        :home-records="homeRecords"
+        :active-tab="activeTab"
+      />
+
       <!-- 测试按钮区域 -->
       <div class="test-buttons">
         <button @click="testWeeklyReport" class="test-btn" :disabled="testingReport">
@@ -73,6 +88,7 @@
         commute-type="work"
         :loading="recordsLoading"
         :show-add-trigger="workRecordTrigger"
+        :hide-add-button="true"
         @add="handleAddRecord"
         @edit="handleEditRecord"
         @delete="handleDeleteRecord"
@@ -86,6 +102,7 @@
         commute-type="home"
         :loading="recordsLoading"
         :show-add-trigger="homeRecordTrigger"
+        :hide-add-button="true"
         @add="handleAddRecord"
         @edit="handleEditRecord"
         @delete="handleDeleteRecord"
@@ -115,6 +132,7 @@ import { supabase } from '../utils/supabase'
 import AuthForm from '../components/common/AuthForm.vue'
 import Sidebar from '../components/common/Sidebar.vue'
 import CommuteRecords from '../components/commute/CommuteRecords.vue'
+import CommuteStatsChart from '../components/commute/CommuteStatsChart.vue'
 import RouteManager from '../components/commute/RouteManager.vue'
 import { useCommuteRecords } from '../composables/useCommuteRecords'
 import { useCommuteRoutes } from '../composables/useCommuteRoutes'
@@ -201,6 +219,15 @@ async function loadData() {
   }
 }
 
+// 快速添加记录（从顶部按钮触发）
+function handleQuickAdd() {
+  if (activeTab.value === 'work') {
+    workRecordTrigger.value++
+  } else if (activeTab.value === 'home') {
+    homeRecordTrigger.value++
+  }
+}
+
 // 处理通勤记录操作
 async function handleAddRecord(data) {
   try {
@@ -241,6 +268,14 @@ function handleDeleteRoute(type, id) {
   return deleteRoute(id, type)
 }
 
+// 格式化本地日期
+function formatLocalDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 测试周报
 async function testWeeklyReport() {
   if (testingReport.value) return
@@ -257,13 +292,13 @@ async function testWeeklyReport() {
     const friday = new Date(monday)
     friday.setDate(monday.getDate() + 4)
 
-    const mondayStr = monday.toISOString().split('T')[0]
-    const fridayStr = friday.toISOString().split('T')[0]
+    const mondayStr = formatLocalDate(monday)
+    const fridayStr = formatLocalDate(friday)
 
     // 获取上班和下班记录
     const { data: workRecords } = await supabase
       .from('commute_records')
-      .select(`*, route:commute_routes (*)`)
+      .select('*, route:commute_routes(*)')
       .eq('commute_type', 'work')
       .gte('record_date', mondayStr)
       .lte('record_date', fridayStr)
@@ -271,7 +306,7 @@ async function testWeeklyReport() {
 
     const { data: homeRecords } = await supabase
       .from('commute_records')
-      .select(`*, route:commute_routes (*)`)
+      .select('*, route:commute_routes(*)')
       .eq('commute_type', 'home')
       .gte('record_date', mondayStr)
       .lte('record_date', fridayStr)
@@ -306,6 +341,9 @@ async function generateWeeklyReport(records, type) {
   if (!records || records.length === 0) {
     return `本周暂无${type}通勤记录。`
   }
+
+  const startTime = performance.now()
+  console.log(`[性能] 开始生成${type}周报，记录数: ${records.length}`)
 
   try {
     // 准备数据
@@ -369,15 +407,30 @@ ${recordsText}
         })
       })
     } else {
-      // 生产环境：使用 Netlify Functions（暂时不支持，返回简化版）
-      throw new Error('请配置 VITE_DEEPSEEK_API_KEY 环境变量')
+      // 生产环境：使用 Netlify Functions 代理
+      response = await fetch('/.netlify/functions/deepseek', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages,
+          temperature: 0.7,
+          max_tokens: 500
+        })
+      })
     }
 
     if (!response.ok) {
+      // 处理超时情况（返回 408 状态码）
+      if (response.status === 408) {
+        throw new Error('AI 分析超时，请稍后重试')
+      }
       throw new Error(`DeepSeek API 错误: ${response.status}`)
     }
 
     const data = await response.json()
+
     const content = data.choices[0].message.content
     const jsonMatch = content.match(/\{[\s\S]*\}/)
 
@@ -442,52 +495,92 @@ function calculateDuration(departure, arrival) {
   return Math.round((arr - dep) / 1000 / 60)
 }
 
+// 检测是否在 Netlify 环境
+function isNetlifyEnv() {
+  return window.location.hostname.includes('netlify.app') ||
+         window.location.hostname === 'localhost' && import.meta.env.MODE === 'production'
+}
+
 // 测试月报
 async function testMonthlyReport() {
   if (testingReport.value) return
   testingReport.value = true
 
   try {
-    // 获取上个月的日期范围（北京时间）
-    const now = new Date()
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0) // 上个月最后一天
-
-    const lastMonthStr = lastMonth.toISOString().split('T')[0]
-    const lastMonthEndStr = lastMonthEnd.toISOString().split('T')[0]
-
-    // 获取上班和下班记录
-    const { data: workRecords } = await supabase
-      .from('commute_records')
-      .select(`*, route:commute_routes (*)`)
-      .eq('commute_type', 'work')
-      .gte('record_date', lastMonthStr)
-      .lte('record_date', lastMonthEndStr)
-      .order('record_date')
-
-    const { data: homeRecords } = await supabase
-      .from('commute_records')
-      .select(`*, route:commute_routes (*)`)
-      .eq('commute_type', 'home')
-      .gte('record_date', lastMonthStr)
-      .lte('record_date', lastMonthEndStr)
-      .order('record_date')
-
-    if ((!workRecords || workRecords.length === 0) && (!homeRecords || homeRecords.length === 0)) {
-      alert('上个月暂无通勤记录，无法生成月报。')
+    // 获取当前用户
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert('请先登录')
       return
     }
 
-    // 生成报告
-    let report = ''
-    if (workRecords && workRecords.length > 0) {
-      report = await generateMonthlyReport(workRecords, '上班', lastMonthStr, lastMonthEndStr)
-      alert(`上班通勤月报生成成功！\n\n${report}`)
-    }
+    // 检测环境：本地开发使用本地函数，Netlify 使用 Netlify Function
+    if (isNetlifyEnv()) {
+      // Netlify 环境：调用 Netlify Function
+      const response = await fetch('/.netlify/functions/commute-monthly-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          test: true,
+          userId: user.id
+        })
+      })
 
-    if (homeRecords && homeRecords.length > 0) {
-      report = await generateMonthlyReport(homeRecords, '下班', lastMonthStr, lastMonthEndStr)
-      alert(`下班通勤月报生成成功！\n\n${report}`)
+      const responseText = await response.text()
+
+      if (!response.ok) {
+        alert(`测试月报失败！\n\n状态码: ${response.status}\n\n响应内容:\n${responseText}`)
+        return
+      }
+
+      const result = JSON.parse(responseText)
+      alert(`测试月报发送成功！\n\n结果：\n${JSON.stringify(result.results, null, 2)}`)
+    } else {
+      // 本地开发环境：使用本地函数
+      const now = new Date()
+      // 本月1号
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      // 今天
+      const thisMonthEnd = new Date()
+
+      const thisMonthStartStr = formatLocalDate(thisMonthStart)
+      const thisMonthEndStr = formatLocalDate(thisMonthEnd)
+
+      // 获取上班和下班记录
+      const { data: workRecords } = await supabase
+        .from('commute_records')
+        .select('*, route:commute_routes(*)')
+        .eq('commute_type', 'work')
+        .gte('record_date', thisMonthStartStr)
+        .lte('record_date', thisMonthEndStr)
+        .order('record_date')
+
+      const { data: homeRecords } = await supabase
+        .from('commute_records')
+        .select('*, route:commute_routes(*)')
+        .eq('commute_type', 'home')
+        .gte('record_date', thisMonthStartStr)
+        .lte('record_date', thisMonthEndStr)
+        .order('record_date')
+
+      if ((!workRecords || workRecords.length === 0) && (!homeRecords || homeRecords.length === 0)) {
+        alert('本月暂无通勤记录，无法生成月报。')
+        return
+      }
+
+      // 生成报告
+      let report = ''
+      if (workRecords && workRecords.length > 0) {
+        report = await generateMonthlyReport(workRecords, '上班', thisMonthStartStr, thisMonthEndStr)
+        alert(`上班通勤月报生成成功！\n\n${report}`)
+      }
+
+      if (homeRecords && homeRecords.length > 0) {
+        report = await generateMonthlyReport(homeRecords, '下班', thisMonthStartStr, thisMonthEndStr)
+        alert(`下班通勤月报生成成功！\n\n${report}`)
+      }
     }
   } catch (error) {
     console.error('测试月报失败:', error)
@@ -500,7 +593,7 @@ async function testMonthlyReport() {
 // 生成本地月报
 async function generateMonthlyReport(records, type, startDate, endDate) {
   if (!records || records.length === 0) {
-    return `上个月暂无${type}通勤记录。`
+    return `本月暂无${type}通勤记录。`
   }
 
   try {
@@ -572,15 +665,30 @@ ${recordsText}
         })
       })
     } else {
-      // 生产环境：使用 Netlify Functions（暂时不支持，返回简化版）
-      throw new Error('请配置 VITE_DEEPSEEK_API_KEY 环境变量')
+      // 生产环境：使用 Netlify Functions 代理
+      response = await fetch('/.netlify/functions/deepseek', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages,
+          temperature: 0.7,
+          max_tokens: 800
+        })
+      })
     }
 
     if (!response.ok) {
+      // 处理超时情况（返回 408 状态码）
+      if (response.status === 408) {
+        throw new Error('AI 分析超时，请稍后重试')
+      }
       throw new Error(`DeepSeek API 错误: ${response.status}`)
     }
 
     const data = await response.json()
+
     const content = data.choices[0].message.content
     const jsonMatch = content.match(/\{[\s\S]*\}/)
 
@@ -639,7 +747,7 @@ ${analysis.insights}
 
     return `⏰ ${type}通勤月报（简化版）
 
-上个月共${records.length}天${type}通勤记录
+本月共${records.length}天${type}通勤记录
 
 📊 平均通勤时间：${avgTime}分钟
 
@@ -786,6 +894,7 @@ onMounted(async () => {
 }
 
 .tab-btn {
+  flex: 1; /* 让三个按钮平分宽度 */
   padding: 12px 24px;
   border: 2px solid #e0e0e0;
   background: white;
@@ -804,6 +913,35 @@ onMounted(async () => {
   background: #007AFF;
   color: white;
   border-color: #007AFF;
+}
+
+/* 快速添加按钮 */
+.quick-add-section {
+  margin-bottom: 16px;
+}
+
+.quick-add-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.quick-add-btn:hover {
+  background: #0051D5;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.quick-add-btn:active {
+  transform: translateY(0);
 }
 
 /* 测试按钮 */
@@ -866,24 +1004,33 @@ onMounted(async () => {
     display: none;
   }
 
+  .quick-add-btn {
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
   .app-container {
     flex-direction: column;
   }
 
   .tab-buttons {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
   .tab-btn {
-    width: 100%;
+    width: calc(33.333% - 7px);
+    font-size: 13px;
+    padding: 8px 4px;
   }
 
   .test-buttons {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 
   .test-btn {
-    width: 100%;
+    width: calc(50% - 5px);
+    font-size: 13px;
+    padding: 8px 4px;
   }
 }
 </style>

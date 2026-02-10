@@ -115,47 +115,46 @@
 
       <!-- 通勤记录添加弹窗 -->
       <div v-if="showCommuteForm" class="modal-overlay" @click="showCommuteForm = false">
-        <div class="modal-content commute-form" @click.stop>
-          <div class="modal-header">
+        <div class="modal-content commute-modal" @click.stop>
+          <div class="commute-modal-header">
             <h2>{{ commuteFormType === 'work' ? '添加上班通勤' : '添加下班通勤' }}</h2>
-            <button @click="showCommuteForm = false" class="close-btn">×</button>
+            <button @click="showCommuteForm = false" class="commute-close-btn"><span>&times;</span></button>
           </div>
-          <form @submit.prevent="handleCommuteSubmit">
-            <div class="form-group">
-              <label>日期</label>
+
+          <form @submit.prevent="handleCommuteSubmit" class="commute-form-fields">
+            <div class="commute-field">
+              <label class="commute-label">日期</label>
               <input
                 v-model="commuteFormData.recordDate"
                 type="date"
                 required
-                class="form-input"
+                class="commute-input"
               >
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>出发时间</label>
-                <input
-                  v-model="commuteFormData.departureTime"
-                  type="time"
-                  required
-                  class="form-input"
-                >
-              </div>
-
-              <div class="form-group">
-                <label>到达时间</label>
-                <input
-                  v-model="commuteFormData.arrivalTime"
-                  type="time"
-                  required
-                  class="form-input"
-                >
-              </div>
+            <div class="commute-field">
+              <label class="commute-label">出发时间</label>
+              <input
+                v-model="commuteFormData.departureTime"
+                type="time"
+                required
+                class="commute-input"
+              >
             </div>
 
-            <div class="form-group">
-              <label>路线（可选）</label>
-              <select v-model="commuteFormData.routeId" class="form-input">
+            <div class="commute-field">
+              <label class="commute-label">到达时间</label>
+              <input
+                v-model="commuteFormData.arrivalTime"
+                type="time"
+                required
+                class="commute-input"
+              >
+            </div>
+
+            <div class="commute-field">
+              <label class="commute-label">路线（可选）</label>
+              <select v-model="commuteFormData.routeId" class="commute-input commute-select">
                 <option :value="null">不选择路线</option>
                 <option
                   v-for="route in commuteFormType === 'work' ? workRoutes : homeRoutes"
@@ -167,9 +166,9 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label>天气（可选）</label>
-              <select v-model="commuteFormData.weather" class="form-input">
+            <div class="commute-field">
+              <label class="commute-label">天气（可选）</label>
+              <select v-model="commuteFormData.weather" class="commute-input commute-select">
                 <option :value="null">不选择</option>
                 <option value="晴">晴</option>
                 <option value="多云">多云</option>
@@ -180,32 +179,31 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label>备注（可选）</label>
+            <div class="commute-field">
+              <label class="commute-label">备注（可选）</label>
               <textarea
                 v-model="commuteFormData.notes"
-                class="form-textarea"
+                class="commute-input commute-textarea"
                 rows="3"
                 maxlength="200"
-                placeholder="请输入备注信息..."
               ></textarea>
             </div>
 
-            <div class="form-group">
-              <label class="checkbox-label">
+            <div class="commute-field">
+              <label class="commute-checkbox-label">
                 <input
                   type="checkbox"
                   v-model="commuteFormData.isSchoolHoliday"
-                  class="checkbox-input"
+                  class="commute-checkbox"
                 >
-                <span>🏫 中小学生寒暑假</span>
+                <span class="commute-checkbox-text">🏫 中小学生寒暑假</span>
               </label>
-              <span class="checkbox-hint">勾选后根据日期自动标记为寒暑假（1-3月为寒假，6-9月为暑假）</span>
+              <span class="commute-checkbox-hint">勾选后根据日期自动标记为寒暑假（1-3月为寒假，6-9月为暑假）</span>
             </div>
 
-            <div class="form-actions">
-              <button type="submit" class="submit-btn">添加</button>
-              <button type="button" @click="showCommuteForm = false" class="cancel-btn">取消</button>
+            <div class="commute-actions">
+              <button type="submit" class="commute-submit-btn">添加</button>
+              <button type="button" @click="showCommuteForm = false" class="commute-cancel-btn">取消</button>
             </div>
           </form>
         </div>
@@ -291,7 +289,7 @@ const commuteFormData = ref({
 
 // Composables
 const { records, loadRecords, getStats, quickRecord } = useFartRecords()
-const { soundWords, loadSoundWords } = useSoundWords()
+const { words: soundWords, loadWords } = useSoundWords()
 const { addRecord } = useCommuteRecords()
 const { workRoutes, homeRoutes, loadRoutes } = useCommuteRoutes()
 
@@ -356,6 +354,7 @@ async function handleSignOut() {
 // 加载数据
 async function loadData() {
   try {
+    console.log('📦 加载物品数据...')
     // 加载物品数据
     const { data: itemsData, error } = await supabase
       .from('items')
@@ -368,6 +367,7 @@ async function loadData() {
     }
 
     // 加载分类数据
+    console.log('📁 加载分类数据...')
     const { data: categoriesData } = await supabase
       .from('categories')
       .select('*')
@@ -378,12 +378,16 @@ async function loadData() {
     }
 
     // 加载放屁记录数据
+    console.log('💨 加载放屁记录...')
     await loadRecords(user.value.id)
 
     // 加载拟声词
-    await loadSoundWords()
+    console.log('📝 加载拟声词...')
+    await loadWords(user.value.id)
+    console.log('✅ 拟声词加载完成，数量:', soundWords.value?.length || 0)
 
     // 加载通勤路线
+    console.log('🛣️ 加载通勤路线...')
     await loadRoutes(user.value.id)
   } catch (error) {
     console.error('加载数据失败:', error.message)
@@ -436,6 +440,8 @@ function openCommuteForm(commuteType) {
     notes: '',
     isSchoolHoliday: false
   }
+  // ⭐ 加载路线数据
+  loadRoutes()
   showCommuteForm.value = true
 }
 
@@ -489,9 +495,15 @@ function goToAIAnalysis() {
 
 // 组件挂载时检查登录状态并加载数据
 onMounted(async () => {
+  console.log('🔄 Dashboard onMounted - 开始加载')
   await checkUser()
+  console.log('👤 checkUser 完成，user:', user.value?.email || 'null')
   if (user.value) {
+    console.log('📊 开始 loadData')
     await loadData()
+    console.log('✅ loadData 完成，拟声词数量:', soundWords.value?.length || 0)
+  } else {
+    console.log('⚠️ 用户未登录，跳过 loadData')
   }
 })
 </script>
@@ -764,31 +776,88 @@ onMounted(async () => {
   }
 }
 
-/* 通勤表单样式 */
-.commute-form {
-  max-width: 500px;
-}
-
-.commute-form form {
+/* 通勤表单样式 - 使用 Flexbox + 强制重置原生样式 */
+.commute-modal {
+  max-width: 90vw;
   width: 100%;
-  max-width: 100%;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* 修改后的通勤弹窗头部 */
+.commute-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* 确保子元素在交叉轴（垂直方向）居中 */
+  padding: 7px 24px -6px;  /* 上移10px（标题），下移20px（分隔线） */
+  border-bottom: 1px solid #E5E5EA;
+  min-height: 35px;    /* 相应减少最小高度 */
+  box-sizing: border-box;
+  margin-bottom: 6px;  /* 抵消负padding，避免布局塌陷 */
+}
+
+.commute-modal-header h2 {
+  margin: 0;           /* 彻底清除默认外边距 */
+  padding: 0;
+  color: #1C1C1E;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;      /* 设置为 1 或者与按钮高度接近的数值 */
+  display: flex;
+  align-items: center;
+}
+
+.commute-close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #8E8E93;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;       /* 使用 flex 居中按钮内的 × 号 */
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+  transform: translateY(-20px);  /* 整个按钮向上移动 20px */
+}
+
+.commute-close-btn:hover {
+  background: #F2F2F7;
+  color: #1C1C1E;
+}
+
+/* × 符号不再需要单独微调 */
+.commute-close-btn span {
+  display: block;
+  line-height: 1;
+}
+
+.commute-form-fields {
+  width: 100%;
+  padding-top: 5px;  /* 日期和分隔线之间留出5px空间 */
+}
+
+.commute-field {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+/* 使用 Flexbox 实现并排布局 */
+.commute-field-row {
+  display: flex;
   gap: 16px;
-}
-
-.form-row .form-group {
-  min-width: 0;  /* 允许grid项目缩小 */
-}
-
-.form-group {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.commute-field-row .commute-field {
+  flex: 1;
+  min-width: 0; /* 允许缩小 */
+}
+
+.commute-label {
   display: block;
   margin-bottom: 6px;
   color: #1C1C1E;
@@ -796,57 +865,49 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.form-input {
+/* 所有输入框统一样式 - 强制重置原生样式 */
+.commute-input {
   width: 100%;
   padding: 10px 12px;
+  min-height: 44px; /* ⭐ 增加最小高度，确保触摸友好 */
   border: 1px solid #dadce0;
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
   box-sizing: border-box;
-}
-
-/* 强制所有input类型使用相同的宽度计算 */
-input.form-input[type="date"],
-input.form-input[type="time"],
-textarea.form-textarea,
-select.form-input,
-select {
-  width: 100% !important;  /* 强制100%宽度 */
-  max-width: 100% !important;
-  padding: 10px 12px !important;  /* 统一padding，强制覆盖select的特殊设置 */
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s;
-  box-sizing: border-box !important;  /* 强制border-box */
   background: white;
   display: block;
+  /* 强制重置移动端原生样式 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-/* 调整日期和时间选择器，使用绝对定位图标避免占用空间 */
-input.form-input[type="date"],
-input.form-input[type="time"] {
-  padding: 10px 12px;  /* 保持与其他输入框相同的padding */
-  position: relative;
+/* 强制重置 date/time input */
+input[type="date"].commute-input,
+input[type="time"].commute-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* 移除 iOS 的圆角和阴影 */
+  border-radius: 8px;
+  /* 确保背景是白色 */
+  background-color: #fff;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
+/* 移除 iOS 的高亮背景 */
+input[type="date"].commute-input:-webkit-autofill,
+input[type="date"].commute-input:-webkit-autofill:hover,
+input[type="date"].commute-input:-webkit-autofill:focus,
+input[type="time"].commute-input:-webkit-autofill,
+input[type="time"].commute-input:-webkit-autofill:hover,
+input[type="time"].commute-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #fff inset;
+  -webkit-text-fill-color: #000;
 }
 
-select {
+/* select 特殊样式 */
+.commute-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -854,79 +915,71 @@ select {
   background-repeat: no-repeat;
   background-position: right 12px center;
   cursor: pointer;
-  /* 移除 padding-right，使用统一的 padding: 10px 12px */
 }
 
-select option {
-  padding: 8px;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #1a73e8;
-}
-
-input[type="date"]:focus,
-input[type="time"]:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #1a73e8;
-}
-
-.form-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s;
+/* textarea 特殊样式 */
+.commute-textarea {
   resize: vertical;
   min-height: 60px;
   font-family: inherit;
-  box-sizing: border-box;
 }
 
-.form-textarea:focus {
+/* 焦点样式 */
+.commute-input:focus {
   outline: none;
   border-color: #1a73e8;
 }
 
-.checkbox-label {
+/* 日期/时间选择器图标优化 */
+input[type="date"].commute-input::-webkit-calendar-picker-indicator,
+input[type="time"].commute-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: invert(0.5); /* 反转颜色以适应深色模式 */
+}
+
+input[type="date"].commute-input::-webkit-calendar-picker-indicator:hover,
+input[type="time"].commute-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* 复选框样式 */
+.commute-checkbox-label {
   display: flex;
   align-items: center;
   cursor: pointer;
   margin-bottom: 6px;
 }
 
-.checkbox-input {
+.commute-checkbox {
   width: 18px;
   height: 18px;
   margin-right: 8px;
   cursor: pointer;
 }
 
-.checkbox-label span:first-of-type {
+.commute-checkbox-text {
   font-size: 14px;
   font-weight: 500;
   color: #1C1C1E;
 }
 
-.checkbox-hint {
+.commute-checkbox-hint {
   display: block;
   font-size: 12px;
   color: #8E8E93;
   margin-left: 26px;
 }
 
-.form-actions {
+/* 按钮样式 */
+.commute-actions {
   display: flex;
   gap: 12px;
   margin-top: 24px;
 }
 
-.submit-btn,
-.cancel-btn {
+.commute-submit-btn,
+.commute-cancel-btn {
   flex: 1;
   padding: 12px 24px;
   border: none;
@@ -937,23 +990,82 @@ textarea:focus {
   transition: all 0.2s;
 }
 
-.submit-btn {
+.commute-submit-btn {
   background: #1a73e8;
   color: white;
 }
 
-.submit-btn:hover {
+.commute-submit-btn:hover {
   background: #1557b0;
 }
 
-.cancel-btn {
+.commute-cancel-btn {
   background: #f8f9fa;
   color: #5f6368;
 }
 
-.cancel-btn:hover {
+.commute-cancel-btn:hover {
   background: #f1f3f4;
 }
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .commute-modal {
+    max-width: 100%;
+  }
+
+  /* Flexbox 在移动端保持不变 */
+  .commute-field-row {
+    gap: 12px;
+  }
+
+  .commute-field {
+    margin-bottom: 14px;
+  }
+
+  /* 强制重置所有原生输入样式 */
+  .commute-input,
+  .commute-select,
+  .commute-textarea {
+    font-size: 16px !important; /* 防止iOS自动缩放 */
+    padding: 10px 10px !important;
+    /* 强制重置 */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    /* 移除 iOS 的默认样式 */
+    -webkit-border-radius: 8px !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* 特别针对 date/time */
+  input[type="date"].commute-input,
+  input[type="time"].commute-input {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    -webkit-border-radius: 8px !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  .commute-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .commute-close-btn {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+
 
 @media (max-width: 480px) {
   .action-buttons {
@@ -990,84 +1102,6 @@ textarea:focus {
 
   .stat-card p {
     font-size: 13px;
-  }
-
-  /* 通勤表单移动端优化 */
-  .commute-form {
-    max-width: 100%;
-    padding: 20px 20px; /* 增加左右padding到20px */
-  }
-
-  .commute-form form {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .modal-header h2 {
-    font-size: 18px;
-  }
-
-  .close-btn {
-    font-size: 28px;
-    width: 28px;
-    height: 28px;
-  }
-
-  .form-row {
-    grid-template-columns: repeat(2, 1fr); /* 2列 */
-    gap: 10px;
-  }
-
-  .form-row .form-group {
-    min-width: 0;
-  }
-
-  .form-group {
-    margin-bottom: 14px;
-  }
-
-  /* 强制所有表单元素宽度一致 */
-  .form-input,
-  input.form-input[type="date"],
-  input.form-input[type="time"],
-  textarea.form-textarea,
-  select {
-    font-size: 16px; /* 防止iOS自动缩放 */
-    padding: 10px 8px; /* 减少左右padding到8px */
-    box-sizing: border-box; /* 确保padding不增加元素宽度 */
-    width: 100% !important; /* 强制100%宽度 */
-    max-width: 100% !important;
-  }
-
-  select {
-    /* 移动端也使用统一padding，不需要额外的padding-right */
-  }
-
-  /* 调整日期和时间选择器图标 - 移动端 */
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="time"]::-webkit-calendar-picker-indicator {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    padding: 0;
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  input.form-input[type="date"],
-  input.form-input[type="time"] {
-    position: relative;
-  }
-
-  .form-textarea {
-    min-height: 60px;
-  }
-
-  /* 减少弹窗外边距，给更多空间 */
-  .modal-overlay {
-    padding: 12px 10px; /* 左右10px，上下12px */
   }
 }
 

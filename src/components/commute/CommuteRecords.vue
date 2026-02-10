@@ -1,9 +1,31 @@
 <template>
   <div class="commute-records-container">
-    <!-- 添加记录按钮 -->
-    <div class="add-section">
+    <!-- 添加记录按钮（当 hideAddButton 为 false 时显示） -->
+    <div v-if="!hideAddButton" class="add-section">
       <button @click="showAddModal = true" class="add-btn">
         + 新增{{ typeLabel }}记录
+      </button>
+    </div>
+
+    <!-- 筛选按钮 -->
+    <div v-if="!loading && records.length > 0" class="filter-section">
+      <button
+        @click="filterType = 'all'"
+        :class="['filter-btn', { active: filterType === 'all' }]"
+      >
+        全部 ({{ records.length }})
+      </button>
+      <button
+        @click="filterType = 'thisWeek'"
+        :class="['filter-btn', { active: filterType === 'thisWeek' }]"
+      >
+        本周 ({{ thisWeekCount }})
+      </button>
+      <button
+        @click="filterType = 'lastWeek'"
+        :class="['filter-btn', { active: filterType === 'lastWeek' }]"
+      >
+        上周 ({{ lastWeekCount }})
       </button>
     </div>
 
@@ -12,16 +34,17 @@
       加载中...
     </div>
 
-    <div v-else-if="records.length === 0" class="empty-state">
+    <div v-else-if="filteredRecords.length === 0" class="empty-state">
       <p>暂无{{ typeLabel }}记录</p>
     </div>
 
-    <div v-else class="records-list">
-      <div
-        v-for="record in records"
-        :key="record.id"
-        class="record-card"
-      >
+    <div v-else>
+      <div class="records-list">
+        <div
+          v-for="record in paginatedRecords"
+          :key="record.id"
+          class="record-card"
+        >
         <div class="record-header">
           <span class="record-date">{{ formatDate(record.record_date) }}</span>
           <div class="header-right">
@@ -66,45 +89,70 @@
       </div>
     </div>
 
+    <!-- 分页控件 -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button
+        @click="currentPage--"
+        :disabled="currentPage === 1"
+        class="page-btn"
+      >
+        上一页
+      </button>
+      <span class="page-info">
+        第 {{ currentPage }} / {{ totalPages }} 页
+      </span>
+      <button
+        @click="currentPage++"
+        :disabled="currentPage === totalPages"
+        class="page-btn"
+      >
+        下一页
+      </button>
+    </div>
+  </div>
+
     <!-- 添加/编辑弹窗 -->
     <div v-if="showAddModal || editingRecord" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <h2>{{ editingRecord ? '编辑' : '新增' }}{{ typeLabel }}记录</h2>
+      <div class="modal-content commute-modal" @click.stop>
+        <div class="commute-modal-header">
+          <h2>{{ editingRecord ? '编辑' : '新增' }}{{ typeLabel }}记录</h2>
+          <button @click="closeModal" class="commute-close-btn">&times;</button>
+        </div>
 
-        <form @submit.prevent="handleSubmit">
-          <div class="form-group">
-            <label>日期</label>
+        <form @submit.prevent="handleSubmit" class="commute-form-fields">
+          <div class="commute-field">
+            <label class="commute-label">日期</label>
             <input
               v-model="formData.recordDate"
               type="date"
               required
-              class="form-input"
+              class="commute-input"
             >
           </div>
 
-          <div class="form-group">
-            <label>出发时间</label>
+          <div class="commute-field">
+            <label class="commute-label">出发时间</label>
             <input
               v-model="formData.departureTime"
               type="time"
               required
-              class="form-input"
+              class="commute-input"
             >
           </div>
 
-          <div class="form-group">
-            <label>到达时间</label>
+          <div class="commute-field">
+            <label class="commute-label">到达时间</label>
             <input
               v-model="formData.arrivalTime"
               type="time"
               required
-              class="form-input"
+              class="commute-input"
             >
           </div>
 
-          <div class="form-group">
-            <label>路线（可选）</label>
-            <select v-model="formData.routeId" class="form-input">
+          <div class="commute-field">
+            <label class="commute-label">路线（可选）</label>
+            <select v-model="formData.routeId" class="commute-input commute-select">
               <option :value="null">不选择路线</option>
               <option
                 v-for="route in routes"
@@ -116,9 +164,9 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label>天气（可选）</label>
-            <select v-model="formData.weather" class="form-input">
+          <div class="commute-field">
+            <label class="commute-label">天气（可选）</label>
+            <select v-model="formData.weather" class="commute-input commute-select">
               <option :value="null">不选择</option>
               <option value="晴">晴</option>
               <option value="多云">多云</option>
@@ -129,33 +177,33 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label>备注（可选）</label>
+          <div class="commute-field">
+            <label class="commute-label">备注（可选）</label>
             <textarea
               v-model="formData.notes"
-              class="form-textarea"
+              class="commute-input commute-textarea"
               rows="3"
               maxlength="200"
             ></textarea>
           </div>
 
-          <div class="form-group">
-            <label class="checkbox-label">
+          <div class="commute-field">
+            <label class="commute-checkbox-label">
               <input
                 type="checkbox"
                 v-model="formData.isSchoolHoliday"
-                class="checkbox-input"
+                class="commute-checkbox"
               >
-              <span>🏫 中小学生寒暑假</span>
+              <span class="commute-checkbox-text">🏫 中小学生寒暑假</span>
             </label>
-            <span class="checkbox-hint">勾选后根据日期自动标记为寒暑假（1-3月为寒假，6-9月为暑假）</span>
+            <span class="commute-checkbox-hint">勾选后根据日期自动标记为寒暑假（1-3月为寒假，6-9月为暑假）</span>
           </div>
 
-          <div class="form-actions">
-            <button type="submit" class="submit-btn">
+          <div class="commute-actions">
+            <button type="submit" class="commute-submit-btn">
               {{ editingRecord ? '保存' : '添加' }}
             </button>
-            <button type="button" @click="closeModal" class="cancel-btn">
+            <button type="button" @click="closeModal" class="commute-cancel-btn">
               取消
             </button>
           </div>
@@ -189,6 +237,10 @@ const props = defineProps({
   showAddTrigger: {
     type: Number,
     default: 0
+  },
+  hideAddButton: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -206,8 +258,93 @@ const formData = ref({
   isSchoolHoliday: false
 })
 
+// 筛选状态
+const filterType = ref('all') // 'all' | 'thisWeek' | 'lastWeek'
+
+// 分页状态
+const currentPage = ref(1)
+const pageSize = 10
+
 const typeLabel = computed(() => {
   return props.commuteType === 'work' ? '上班通勤' : '下班通勤'
+})
+
+// 计算本周的周一和周日
+function getThisWeekRange() {
+  const now = new Date()
+  const currentDay = now.getDay()
+  const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay
+
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + daysToMonday)
+  monday.setHours(0, 0, 0, 0)
+
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
+
+  return { monday, sunday }
+}
+
+// 计算上周的周一和周日
+function getLastWeekRange() {
+  const { monday: thisMonday } = getThisWeekRange()
+
+  const lastMonday = new Date(thisMonday)
+  lastMonday.setDate(thisMonday.getDate() - 7)
+
+  const lastSunday = new Date(thisMonday)
+  lastSunday.setDate(thisMonday.getDate() - 1)
+  lastSunday.setHours(23, 59, 59, 999)
+
+  return { monday: lastMonday, sunday: lastSunday }
+}
+
+// 检查记录是否在指定日期范围内
+function isRecordInRange(recordDate, start, end) {
+  const date = new Date(recordDate)
+  return date >= start && date <= end
+}
+
+// 计算本周记录数
+const thisWeekCount = computed(() => {
+  const { monday, sunday } = getThisWeekRange()
+  return props.records.filter(r => isRecordInRange(r.record_date, monday, sunday)).length
+})
+
+// 计算上周记录数
+const lastWeekCount = computed(() => {
+  const { monday, sunday } = getLastWeekRange()
+  return props.records.filter(r => isRecordInRange(r.record_date, monday, sunday)).length
+})
+
+// 根据筛选类型过滤记录
+const filteredRecords = computed(() => {
+  if (filterType.value === 'thisWeek') {
+    const { monday, sunday } = getThisWeekRange()
+    return props.records.filter(r => isRecordInRange(r.record_date, monday, sunday))
+  } else if (filterType.value === 'lastWeek') {
+    const { monday, sunday } = getLastWeekRange()
+    return props.records.filter(r => isRecordInRange(r.record_date, monday, sunday))
+  }
+  return props.records
+})
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredRecords.value.length / pageSize)
+})
+
+// 当前页的记录
+const paginatedRecords = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredRecords.value.slice(start, end)
+})
+
+// 监听筛选类型变化，重置到第一页
+watch(filterType, () => {
+  currentPage.value = 1
 })
 
 function getHolidayType(dateStr) {
@@ -319,6 +456,73 @@ watch(() => props.showAddTrigger, (newVal) => {
 
 .add-section {
   margin-bottom: 20px;
+}
+
+/* 筛选按钮样式 */
+.filter-section {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #f1f3f4;
+}
+
+.filter-btn.active {
+  background: #1a73e8;
+  color: white;
+  border-color: #1a73e8;
+}
+
+/* 分页样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px 0;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f1f3f4;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #5f6368;
+  font-weight: 500;
 }
 
 .add-btn {
@@ -465,18 +669,83 @@ watch(() => props.showAddTrigger, (newVal) => {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
-.modal-content h2 {
-  margin: 0 0 24px;
+/* 通勤表单特定样式 */
+.commute-modal {
+  padding: 0;
+}
+
+.commute-modal-header {
+  position: relative;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.commute-modal-header h2 {
+  margin: 0;
+  padding: 0;
   color: #1C1C1E;
   font-size: 20px;
   font-weight: 600;
+  line-height: 1;
 }
 
-.form-group {
+.commute-close-btn {
+  position: absolute;
+  top: 50%;
+  right: 24px;
+  -webkit-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  font-size: 28px;
+  line-height: 1;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8E8E93;
+  border-radius: 6px;
+  -webkit-transition: all 0.2s;
+  transition: all 0.2s;
+}
+
+.commute-close-btn:hover {
+  background: #F2F2F7;
+  color: #1C1C1E;
+}
+
+.commute-form-fields {
+  padding: 24px;
+}
+
+.commute-field {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.commute-field-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.commute-field-row .commute-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.commute-label {
   display: block;
   margin-bottom: 6px;
   color: #1C1C1E;
@@ -484,35 +753,78 @@ watch(() => props.showAddTrigger, (newVal) => {
   font-weight: 500;
 }
 
-.form-input,
-.form-textarea {
+.commute-input {
   width: 100%;
   padding: 10px 12px;
+  min-height: 44px;
   border: 1px solid #dadce0;
   border-radius: 8px;
   font-size: 14px;
-  transition: all 0.2s;
+  box-sizing: border-box;
+  background: white;
+  display: block;
+  transition: border-color 0.2s;
+  /* Force reset native mobile styles */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.commute-input:focus {
   outline: none;
   border-color: #1a73e8;
 }
 
-.form-textarea {
+.commute-textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
 }
 
-.form-actions {
+.commute-select {
+  cursor: pointer;
+}
+
+/* 复选框样式 */
+.commute-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.commute-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.commute-checkbox-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C1C1E;
+}
+
+.commute-checkbox-hint {
+  display: block;
+  font-size: 12px;
+  color: #8E8E93;
+  margin-top: 4px;
+  margin-left: 26px;
+}
+
+/* 按钮样式 */
+.commute-actions {
   display: flex;
   gap: 12px;
   margin-top: 24px;
 }
 
-.submit-btn,
-.cancel-btn {
+.commute-submit-btn,
+.commute-cancel-btn {
   flex: 1;
   padding: 12px 24px;
   border: none;
@@ -523,21 +835,21 @@ watch(() => props.showAddTrigger, (newVal) => {
   transition: all 0.2s;
 }
 
-.submit-btn {
+.commute-submit-btn {
   background: #1a73e8;
   color: white;
 }
 
-.submit-btn:hover {
+.commute-submit-btn:hover {
   background: #1557b0;
 }
 
-.cancel-btn {
+.commute-cancel-btn {
   background: #f8f9fa;
   color: #5f6368;
 }
 
-.cancel-btn:hover {
+.commute-cancel-btn:hover {
   background: #f1f3f4;
 }
 
@@ -558,52 +870,103 @@ watch(() => props.showAddTrigger, (newVal) => {
 }
 
 .holiday-badge.winter {
-  background: #4a90e2; /* 蓝色 - 寒假 */
+  background: #4a90e2;
 }
 
 .holiday-badge.summer {
-  background: #ff6b6b; /* 红色 - 暑假 */
+  background: #ff6b6b;
 }
 
-/* 复选框样式 */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  margin-bottom: 6px;
-}
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .filter-section {
+    gap: 8px;
+  }
 
-.checkbox-input {
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  cursor: pointer;
-}
+  .filter-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
 
-.checkbox-label span:first-of-type {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1C1C1E;
-}
+  .pagination {
+    gap: 12px;
+    padding: 12px 0;
+  }
 
-.checkbox-hint {
-  display: block;
-  font-size: 12px;
-  color: #8E8E93;
-  margin-left: 26px;
-}
+  .page-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
 
-@media (max-width: 768px) {
+  .page-info {
+    font-size: 13px;
+  }
+
   .add-btn {
     width: 100%;
   }
 
   .modal-content {
+    padding: 0;
+    max-height: 95vh;
+  }
+
+  .commute-modal-header {
+    padding: 16px 20px;
+  }
+
+  .commute-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .commute-form-fields {
     padding: 20px;
   }
 
-  .form-actions {
+  .commute-field-row {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  /* 统一移动端输入框样式 */
+  .commute-input,
+  .commute-select,
+  .commute-textarea {
+    font-size: 16px !important;
+    padding: 10px 12px !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    -webkit-border-radius: 8px !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* 针对日期和时间输入的特殊处理 */
+  input[type="date"].commute-input,
+  input[type="time"].commute-input {
+    -webkit-appearance: none !important;
+    -webkit-border-radius: 8px !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    -webkit-box-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  .commute-textarea {
+    min-height: 100px !important;
+  }
+
+  .commute-actions {
+    flex-direction: column;
+  }
+
+  .commute-submit-btn,
+  .commute-cancel-btn {
+    width: 100%;
   }
 }
 </style>

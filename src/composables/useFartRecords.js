@@ -107,7 +107,7 @@ export function useFartRecords() {
   // 更新记录
   async function updateRecord(id, updateData) {
     try {
-      const { data, error: err } = await supabase
+      const { error: err } = await supabase
         .from('fart_records')
         .update({
           sound_level: updateData.sound_level,
@@ -117,18 +117,10 @@ export function useFartRecords() {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select()
-        .single()
 
       if (err) throw err
 
-      // 更新本地数据
-      const index = records.value.findIndex(r => r.id === id)
-      if (index !== -1 && data) {
-        records.value[index] = data
-      }
-
-      return data
+      return { success: true }
     } catch (err) {
       console.error('更新记录失败:', err)
       throw err

@@ -33,9 +33,9 @@
           <span v-if="!isCollapsed || !isMobile" class="nav-text">隐藏功能</span>
         </router-link>
 
-        <router-link to="/commute-tracker" class="nav-item" @click="onNavClick">
-          <span class="nav-icon">⏰</span>
-          <span v-if="!isCollapsed || !isMobile" class="nav-text">上下班时间</span>
+        <router-link to="/commute-checkins" class="nav-item" @click="onNavClick">
+          <span class="nav-icon">🚗</span>
+          <span v-if="!isCollapsed || !isMobile" class="nav-text">通勤用时</span>
         </router-link>
 
         <router-link to="/rules" class="nav-item" @click="onNavClick">
@@ -239,6 +239,10 @@ defineExpose({
 
 /* 桌面端：折叠状态 */
 @media (min-width: 769px) {
+  .sidebar.collapsed .logo-link {
+    display: none; /* 隐藏整个 logo-link，让 toggle-btn 居中 */
+  }
+
   .sidebar.collapsed .sidebar-header h2 {
     display: none;
   }
@@ -256,6 +260,10 @@ defineExpose({
     justify-content: center;
   }
 
+  .sidebar.collapsed .toggle-btn {
+    margin: 0 auto; /* 让 toggle-btn 在收起状态时居中 */
+  }
+
   .sidebar.collapsed .sidebar-nav {
     padding: 0 5px;
   }
@@ -271,8 +279,8 @@ defineExpose({
   .sidebar-inner {
     position: fixed;
     left: 0;
-    top: 0;
-    height: 100vh;
+    top: 20px; /* 向下移动20px */
+    height: calc(100vh - 50px); /* 高度减少50px */
     border-radius: 0;
     z-index: 1001;
     transform: translateX(-100%);
@@ -280,7 +288,7 @@ defineExpose({
   }
 
   .sidebar:not(.collapsed) .sidebar-inner {
-    transform: translateX(0);
+    transform: translateX(50px); /* 移动端打开时向右移动50px */
   }
 
   .sidebar-overlay {

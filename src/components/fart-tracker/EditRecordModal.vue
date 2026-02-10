@@ -35,10 +35,16 @@
       <!-- 臭/不臭 -->
       <div class="form-field">
         <label>味道</label>
-        <label class="toggle">
-          <input type="checkbox" v-model="isSmelly">
-          <span class="slider"></span>
-          <span class="label-text">{{ isSmelly ? '臭' : '不臭' }}</span>
+        <label class="toggle-label">
+          <input
+            type="checkbox"
+            v-model="isSmelly"
+            class="toggle-input"
+          >
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">
+            {{ isSmelly ? '💩 臭' : '✨ 无臭' }}
+          </span>
         </label>
       </div>
 
@@ -238,27 +244,29 @@ function handleClose() {
   padding: 0 4px;
 }
 
-.toggle {
+.toggle-label {
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  margin-top: 5px;
 }
 
-.toggle input[type="checkbox"] {
+.toggle-input {
   display: none;
 }
 
-.slider {
+.toggle-slider {
   position: relative;
   width: 51px;
   height: 31px;
   background: #E5E5EA;
   border-radius: 15.5px;
   transition: background 0.3s;
+  margin-top: -5px;
 }
 
-.slider::before {
+.toggle-slider::before {
   content: '';
   position: absolute;
   width: 27px;
@@ -271,17 +279,19 @@ function handleClose() {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.toggle input:checked + .slider {
-  background: #34C759;
+.toggle-input:checked + .toggle-slider {
+  background: linear-gradient(to right, #34C759 20px, #E5E5EA 20px);
 }
 
-.toggle input:checked + .slider::before {
+.toggle-input:checked + .toggle-slider::before {
   transform: translateX(20px);
 }
 
-.label-text {
+.toggle-text {
   font-size: 16px;
   color: #1C1C1E;
+  margin-left: 60px;
+  margin-top: 10px;
 }
 
 .sound-word-selector {
@@ -336,12 +346,12 @@ function handleClose() {
 }
 
 .btn-save {
-  background: #007AFF;
+  background: #1a73e8;
   color: white;
 }
 
 .btn-save:hover {
-  background: #0051D5;
+  background: #1557b0;
 }
 
 @media (max-width: 480px) {

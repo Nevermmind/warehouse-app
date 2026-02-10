@@ -5,6 +5,7 @@ import Rules from '../views/Rules.vue'
 import CategoryManagement from '../views/CategoryManagement.vue'
 import FartTracker from '../views/FartTracker.vue'
 import CommuteTracker from '../views/CommuteTracker.vue'
+import CommuteCheckins from '../views/CommuteCheckins.vue'
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/commute-tracker',
     name: 'CommuteTracker',
     component: CommuteTracker
+  },
+  {
+    path: '/commute-checkins',
+    name: 'CommuteCheckins',
+    component: CommuteCheckins
   }
 ]
 

@@ -383,5 +383,12 @@ export default {
     right: 14px;
     opacity: 1;
   }
+
+  .btn-edit-record {
+    position: absolute;
+    top: 14px;
+    right: 50px;
+    opacity: 1;
+  }
 }
 </style>
