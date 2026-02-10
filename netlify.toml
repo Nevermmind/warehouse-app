@@ -33,13 +33,7 @@
 [functions.check-expiry]
   schedule = "0 11 * * *"
 
-# Edge Functions 配置 - 支持 150 秒超时
+# Edge Functions 配置
 [functions.deepseek]
-  runtime = "edge"
-
-[functions.commute-weekly-report]
-  runtime = "edge"
-
-[functions.commute-monthly-report]
   runtime = "edge"
 
