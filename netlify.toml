@@ -2,6 +2,12 @@
   command = "npm run build"
   publish = "dist"
 
+# 如果请求的是 assets 目录下的文件但找不到，直接返回 404，不要跳转到 index.html
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+
 # SPA fallback
 [[redirects]]
   from = "/*"
