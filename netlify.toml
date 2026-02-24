@@ -40,7 +40,3 @@
 [functions.check-expiry]
   schedule = "0 11 * * *"
 
-# Edge Functions 配置
-[functions.deepseek]
-  runtime = "edge"
-

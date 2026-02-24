@@ -1,7 +1,7 @@
 # 家庭管理系统 (Family Management System)
 
-> **最后更新**: 2026-02-06
-> **版本**: v2.2
+> **最后更新**: 2026-02-24
+> **版本**: v2.3
 > **技术栈**: Vue 3 + Vite + Supabase + Netlify
 
 一个综合性的家庭管理 Web 应用，包含仓库管理、放屁记录追踪、上下班通勤时间追踪等功能。
@@ -142,8 +142,6 @@ warehouse-app/
 │   └── functions/
 │       ├── check-expiry.js            # 过期物品检查（每天晚 7 点）
 │       ├── fart-weekly-report.js      # 放屁周报（每周日上午 9 点）
-│       ├── commute-weekly-report.js   # 通勤周报（每周六上午 9 点）
-│       ├── commute-monthly-report.js  # 通勤月报（每月 1 日上午 9 点）
 │       └── deepseek.js                # DeepSeek API 代理（生产环境）
 │
 ├── supabase/                  # Supabase 数据库迁移文件
@@ -154,7 +152,6 @@ warehouse-app/
 │       ├── 202501XX_create_fart_records_table.sql
 │       ├── 202501XX_create_sound_words_table.sql
 │       ├── 20260204_create_commute_tables.sql
-│       ├── 20260204_reset_commute_tables.sql
 │       └── 20260204_add_school_holiday_field.sql
 │
 ├── .env                       # 环境变量（本地开发）
@@ -353,15 +350,20 @@ VITE_DEEPSEEK_API_KEY=sk-your_deepseek_api_key
 
 ```bash
 # Supabase
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# DeepSeek API
+# DeepSeek API（必需，AI 分析功能）
 DEEPSEEK_API_KEY=sk-your_deepseek_api_key
 
-# Resend (邮件服务)
+# Resend (邮件服务，可选)
 RESEND_API_KEY=re-your_resend_api_key
 ```
+
+**注意事项**:
+- ⚠️ 不需要 `SUPABASE_URL` 和 `SUPABASE_SERVICE_ROLE_KEY`（前端只需 anon key）
+- ⚠️ `VITE_DEEPSEEK_API_KEY` 仅用于本地开发，生产环境使用 `DEEPSEEK_API_KEY`
+- ⚠️ `RESEND_API_KEY` 仅在需要邮件提醒时配置
 
 **配置路径**:
 Netlify Dashboard → Site Settings → Environment Variables
@@ -485,53 +487,19 @@ export const config = {
 
 ---
 
-### 任务 3: 通勤记录周报
+### 任务 3: 通勤记录报告（已移除）
 
-**文件**: `netlify/functions/commute-weekly-report.js`
+> **说明**: 通勤周报和月报功能已从 v2.3 版本移除（Netlify Scheduled Functions 不支持自定义路径）
 
-**触发**: 每周六上午 9:00（北京时间）
-
-**功能**:
-- 生成本周一到周五的通勤统计
-- 分别生成上班和下班两份报告
-- 使用 DeepSeek API 分析通勤趋势
-- 发送邮件报告
-
-**Cron 配置**:
-```javascript
-export const config = {
-  schedule: '0 1 * * 6',  // UTC 1:00 = 北京时间 9:00
-  path: '/.netlify/functions/commute-weekly-report'
-}
-```
-
----
-
-### 任务 4: 通勤记录月报
-
-**文件**: `netlify/functions/commute-monthly-report.js`
-
-**触发**: 每月 1 日上午 9:00（北京时间）
-
-**功能**:
-- 生成上个月的通勤统计
-- 分别生成上班和下班两份报告
-- 使用 DeepSeek API 分析月度趋势
-- 发送邮件报告
-
-**Cron 配置**:
-```javascript
-export const config = {
-  schedule: '0 1 1 * *',  // UTC 1:00 = 北京时间 9:00
-  path: '/.netlify/functions/commute-monthly-report'
-}
-```
+**替代方案**:
+- 用户可以在"上下班时间"页面手动查看统计
+- 未来考虑使用其他定时任务方案（如 Supabase Edge Functions）
 
 ---
 
 ## 🔧 测试定时任务
 
-### 本地测试周报/月报
+### 本地测试 AI 分析功能
 
 1. **配置 DeepSeek API Key**
    ```bash
@@ -545,13 +513,15 @@ export const config = {
    ```
 
 3. **点击测试按钮**
-   - 在"上下班时间"页面点击"📧 测试周报"或"📧 测试月报"
-   - 报告会显示在 alert 对话框中
+   - 在"隐藏功能"页面点击"🤖 AI 分析"按钮
+   - 分析报告会显示在弹窗中
 
 **测试原理**:
 - 检查 `VITE_DEEPSEEK_API_KEY` 环境变量
 - 如果存在：直接调用 DeepSeek API（本地测试）
 - 如果不存在：使用 Netlify Functions（生产环境）
+
+**注意**: 通勤周报和月报功能已移除（v2.3），请在页面内手动查看统计
 
 ---
 
@@ -652,6 +622,15 @@ if (localApiKey) {
 - ✅ 移动端表单对齐优化（统一所有表单元素padding）
 - ✅ 修复日期/时间输入框宽度不一致问题
 - ✅ 解决移动端输入框超出对话框边界问题
+
+### v2.3 - 部署修复与 PWA 优化 (2026-02-24)
+- ✅ 修复 AI 分析报告截断问题（max_tokens: 400 → 2000）
+- ✅ 修复 Netlify MIME Type 错误（添加 base: '/' 和 assets 404 规则）
+- ✅ 修复 Netlify Edge Function 502 错误（移除 edge runtime 配置）
+- ✅ 修复 iOS PWA 图标不显示问题（添加版本参数 ?v=2）
+- ✅ 添加 apple-touch-icon.png 作为 iOS 兜底图标
+- ✅ 优化 netlify.toml 配置（移除无效的全局 timeout 配置）
+- ✅ 删除通勤周报/月报定时任务（路径配置问题，暂不使用）
 
 ---
 
@@ -1311,6 +1290,174 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 ---
 
+### 部署问题修复总结（v2.3）
+
+#### 问题 1: AI 分析报告截断
+
+**现象**: AI 分析报告显示不完整，内容在中间被截断。
+
+**原因**: `max_tokens` 设置太小（400 tokens）
+
+**解决方案**:
+```javascript
+// AIAnalysisModal.vue (第 193, 206 行)
+max_tokens: 2000  // 从 400 增加到 2000
+
+// netlify/functions/deepseek.js (第 24 行)
+max_tokens: max_tokens || 2000  // 默认 2000 tokens
+```
+
+**相关文件**:
+- `src/components/fart-tracker/AIAnalysisModal.vue`
+- `netlify/functions/deepseek.js`
+
+---
+
+#### 问题 2: MIME Type 错误
+
+**现象**: 浏览器控制台报错 `TypeError: 'text/html' is not a valid JavaScript MIME type`
+
+**原因**: SPA 的路由回退规则（`/* → /index.html`）导致浏览器请求不存在的 JS 文件时返回 HTML
+
+**解决方案**:
+```javascript
+// vite.config.js
+export default defineConfig({
+  base: '/',  // ⭐ 添加 base 配置，强制使用绝对路径
+  plugins: [vue()],
+})
+```
+
+```toml
+# netlify.toml
+# ⭐ 在 SPA 回退规则之前添加 assets 404 规则
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+**关键点**:
+- Netlify redirect 规则按顺序匹配，特定规则必须在通用规则之前
+- `base: '/'` 确保 Vite 构建时使用绝对路径
+
+**相关文件**:
+- `vite.config.js`
+- `netlify.toml`
+
+---
+
+#### 问题 3: Edge Function 502 错误
+
+**现象**: Netlify logs 显示 `Function returned an unsupported value. Accepted types are 'Response' or 'undefined'`
+
+**原因**: `deepseek.js` 使用对象返回格式 `{ statusCode, body }`，但配置了 `runtime: 'edge'`
+
+**技术细节**:
+- **Edge Functions** 只支持返回 `Response` 对象
+- **Node.js Functions** 支持对象返回格式 `{ statusCode, headers, body }`
+
+**解决方案**:
+```javascript
+// ❌ 删除 netlify/functions/deepseek.js 末尾的配置
+export const config = {
+  runtime: 'edge'  // 删除此配置
+}
+
+// ❌ 删除 netlify.toml 中的配置
+[functions.deepseek]
+  runtime = "edge"  # 删除此配置
+
+// ✅ 保持 Node.js 兼容的返回格式
+return {
+  statusCode: 200,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data)
+}
+```
+
+**相关文件**:
+- `netlify/functions/deepseek.js`
+- `netlify.toml`
+
+---
+
+#### 问题 4: iOS PWA 图标不显示
+
+**现象**: Safari (iOS) 添加到主屏幕后不显示应用图标
+
+**原因**: iOS 缓存图标文件长达 1 年（netlify.toml 配置），版本更新后图标未刷新
+
+**解决方案**:
+
+**1. 添加版本参数到所有图标链接**:
+```html
+<!-- index.html -->
+<!-- ⭐ 添加 ?v=2 版本参数 -->
+<link rel="icon" type="image/png" href="/icons/favicon.png?v=2" />
+<link rel="manifest" href="/manifest.json?v=2" />
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png?v=2" />
+```
+
+```json
+// public/manifest.json
+{
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png?v=2",  // ⭐ 所有图标添加 ?v=2
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+**2. 创建兜底图标文件**:
+```bash
+# 复制 icon-192x192.png 到根目录
+cp public/icons/icon-192x192.png public/apple-touch-icon.png
+```
+
+**iOS 图标优先级**:
+1. fallback icon（无 sizes 属性）← ⭐ 最高优先级
+2. sized icons（有 sizes 属性）
+3. manifest.json 中的图标
+
+**相关文件**:
+- `index.html`
+- `public/manifest.json`
+- `public/apple-touch-icon.png` (新文件)
+
+---
+
+#### 问题 5: Netlify TOML 语法错误
+
+**现象**: Netlify 部署失败，报错 `Configuration property functions.timeout must be an object`
+
+**原因**: 全局 timeout 配置语法不正确
+
+**解决方案**:
+```toml
+# ❌ 删除无效配置
+[functions]
+  timeout = 150  # 此语法无效
+
+# ✅ 正确的配置方式（如需要）
+# [functions."function-name"]
+#   timeout = 150
+```
+
+**相关文件**:
+- `netlify.toml`
+
+---
+
 ## 🔒 安全性
 
 ### 已实现的安全措施
@@ -1329,11 +1476,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 - [ ] 添加物品搜索功能
 - [ ] 优化图表加载性能
 - [ ] 添加数据导出功能（CSV/Excel）
+- [ ] 通勤记录统计页面（替代周报/月报）
 
 ### 中期（1个月）
 - [ ] PWA 离线支持
 - [ ] 数据备份/恢复功能
 - [ ] 多用户权限管理
+- [ ] 使用 Supabase Edge Functions 重构通勤报告功能
 
 ### 长期（3个月）
 - [ ] 移动端原生应用（Capacitor）
@@ -1354,12 +1503,40 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ---
 
+### Q: 部署后浏览器控制台报 MIME Type 错误？
+
+**A**: 这是 SPA 路由回退规则导致的问题，已在 v2.3 修复：
+1. 确保 `vite.config.js` 中有 `base: '/'` 配置
+2. 确保 `netlify.toml` 中 assets 404 规则在 SPA fallback 之前
+
+---
+
+### Q: AI 分析报告显示不完整？
+
+**A**: 这是 max_tokens 设置太小的问题，已在 v2.3 修复：
+- 本地开发：检查 `.env` 中是否有 `VITE_DEEPSEEK_API_KEY`
+- 生产环境：检查 Netlify 环境变量中是否有 `DEEPSEEK_API_KEY`
+- 报告长度限制已增加到 2000 tokens
+
+---
+
+### Q: iOS 添加到主屏幕后不显示图标？
+
+**A**: 这是 iOS 缓存问题，已在 v2.3 修复：
+1. 所有图标链接添加了 `?v=2` 版本参数
+2. 创建了 `apple-touch-icon.png` 兜底图标
+3. 如果仍不显示，尝试清除 Safari 缓存并重新添加
+
+---
+
 ### Q: 定时任务没有执行？
 
 **A**: Netlify Scheduled Functions 需要生产环境才能运行：
 1. 确保代码已部署到 Netlify
 2. 检查 Netlify Dashboard 的 Function logs
-3. 确认环境变量已配置（`SUPABASE_SERVICE_ROLE_KEY`、`DEEPSEEK_API_KEY`、`RESEND_API_KEY`）
+3. 确认环境变量已配置（`RESEND_API_KEY`、`DEEPSEEK_API_KEY`）
+
+**注意**: 通勤周报和月报功能已移除（v2.3）
 
 ---
 
@@ -1368,6 +1545,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 **A**: 检查 DeepSeek API Key：
 - 本地测试：确保 `.env` 中有 `VITE_DEEPSEEK_API_KEY`
 - 生产环境：确保 Netlify 环境变量中有 `DEEPSEEK_API_KEY`
+- 检查 Netlify Function logs 查看详细错误信息
 
 ---
 
@@ -1474,7 +1652,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 - **GitHub**: dongshangyi
 - **项目开始**: 2025-01-15
-- **最后更新**: 2026-02-04
+- **最后更新**: 2026-02-24
 
 ---
 

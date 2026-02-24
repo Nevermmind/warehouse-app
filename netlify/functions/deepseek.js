@@ -81,7 +81,3 @@ export default async function(event, context) {
     };
   }
 };
-
-export const config = {
-  runtime: 'edge'
-};
