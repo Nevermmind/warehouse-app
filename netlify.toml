@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+# 指定 Node.js 版本（18+ 支持 fetch API）
+[build.environment]
+  NODE_VERSION = "18"
+
 # 如果请求的是 assets 目录下的文件但找不到，直接返回 404，不要跳转到 index.html
 [[redirects]]
   from = "/assets/*"
